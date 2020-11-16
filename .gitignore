@@ -45,3 +45,6 @@ build*
 # My files #
 ############
 perf*
+callgrind*
+massif*
+objdump*

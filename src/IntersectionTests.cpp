@@ -27,19 +27,39 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 1> rayVector,
   scalar_t prod2 = rayVector.dot(planeNormal);
   scalar_t prod3 = prod1 / prod2;
   return rayPoint - rayVector * prod3;*/
-  Eigen::Array<scalar_t, kDIM, 1> coeffs1 = (rayPoint - planePoint).cwiseProduct(planeNormal);
-  Eigen::Array<scalar_t, kDIM, 1> coeffs2 = rayVector.cwiseProduct(planeNormal);
-  /*for (unsigned i=0; i<kDIM; i+=3) {
-    scalar_t dot1 = coeffs1.block(3,1,i,1).sum();
-    scalar_t dot2 = coeffs2.block(3,1,i,1).sum();
-    rayVector.block(3,1,i,0) *= dot1/dot2;
+  
+  typedef Eigen::Array <scalar_t, kDIM/3, 1> array_t;
+  typedef Eigen::Matrix<scalar_t, kDIM,   1> vector_t;
+  typedef Eigen::Matrix<scalar_t, 3, kDIM/3> matrix_t;
+    
+  // All in loop
+  /*for (unsigned i = 0; i < kDIM; i += 3) {
+    scalar_t a1 = (rayPoint(i,1) - planePoint(i, 1)) * planeNormal(i, 1);
+    scalar_t a2 = (rayPoint(i+1,1) - planePoint(i+1, 1)) * planeNormal(i+1, 1);
+    scalar_t a3 = (rayPoint(i+2,1) - planePoint(i+2, 1)) * planeNormal(i+2, 1);
+    scalar_t b1 = rayVector(i, 1)* planeNormal(i, 1);
+    scalar_t b2 = rayVector(i+1, 1)* planeNormal(i+1, 1);
+    scalar_t b3 = rayVector(i+1, 1)* planeNormal(i+1, 1);
+    rayVector.block(3,1,i,0) *= (a1+a2+a3)/ (b1+b2+b3);
   }*/
-  // All other elements of the coefficient array become obsolete after loop
-  for (unsigned i=0; i<kDIM; i+=3) {
-    scalar_t dot1 = coeffs1(i,1) + coeffs1(i+1,1) + coeffs1(i+2,1);
-    scalar_t dot2 = coeffs2(i,1) + coeffs2(i+1,1) + coeffs2(i+2,1);
-    rayVector.block(3,1,i,0) *= dot1/dot2;
+  
+  Eigen::Map<matrix_t> map1 (((vector_t)(rayPoint - planePoint).cwiseProduct(planeNormal)).data());
+  Eigen::Map<matrix_t> map2 (((vector_t)rayVector.cwiseProduct(planeNormal)).data());
+
+  array_t coeffs = (array_t)map1.colwise().sum()/(array_t)map2.colwise().sum();
+  
+  // Loopless
+  /*Eigen::Map<matrix_t> rayMap (rayVector.data());
+  
+  rayVector.template segment<kDIM/3>(0) = std::move(((array_t)rayMap.row(0)).cwiseProduct(coeffs));
+  rayVector.template segment<kDIM/3>(kDIM/3) = std::move(((array_t)rayMap.row(1)).cwiseProduct(coeffs));
+  rayVector.template segment<kDIM/3>(2*kDIM/3) = std::move(((array_t)rayMap.row(2)).cwiseProduct(coeffs));*/
+  
+  // Semi loopless
+  for (unsigned i = 0; i < kDIM; i += 3) {
+    rayVector.block(3,1,i,0) *= coeffs(i/3, 1);
   }
+  
   return rayPoint - rayVector;
 }
 
@@ -88,9 +108,6 @@ template <unsigned int kPlanes> void intersectMultiple() {
   VectorM rpM;
   VectorM pnM;
   VectorM ppM;
-  
-  //VectorM testV;
-  //VectorM ipM;
 
   for (unsigned int ip = 0; ip < kPlanes; ++ip) {
     rvM.template segment<3>(ip * 3) = rv;
@@ -100,13 +117,6 @@ template <unsigned int kPlanes> void intersectMultiple() {
   }
   for (unsigned int nt = 0; nt < tests; ++nt) {
     auto ipM = intersect<Scalar, kFullDim>(rvM, rpM, pnM, ppM);
-    /*for (unsigned int ip = 0; ip < kPlanes; ++ip) {
-      auto ips = intersect<Scalar, 3>(rv, rp, pn, pps[ip]);
-      testV.template segment<3>(ip * 3) = ips;
-    }
-    if (!ipM.isApprox(testV)) {
-      std::cout << "ERROR";
-    }*/
   }
 }
 
@@ -125,6 +135,7 @@ BOOST_AUTO_TEST_CASE(MultiIntersection8) { intersectMultiple<8>(); }
 BOOST_AUTO_TEST_CASE(SingleIntersection9) { intersectSingle<9>(); }
 
 BOOST_AUTO_TEST_CASE(MultiIntersection9) { intersectMultiple<9>(); }
+
 
 BOOST_AUTO_TEST_SUITE_END()
 
