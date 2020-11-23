@@ -28,36 +28,45 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 1> rayVector,
   scalar_t prod3 = prod1 / prod2;
   return rayPoint - rayVector * prod3;*/
   
-  typedef Eigen::Array <scalar_t, kDIM/3, 1> array_t;
-  typedef Eigen::Matrix<scalar_t, kDIM,   1> vector_t;
-  typedef Eigen::Matrix<scalar_t, 3, kDIM/3> matrix_t;
-    
-  // All in loop
-  /*for (unsigned i = 0; i < kDIM; i += 3) {
-    scalar_t a1 = (rayPoint(i,1) - planePoint(i, 1)) * planeNormal(i, 1);
-    scalar_t a2 = (rayPoint(i+1,1) - planePoint(i+1, 1)) * planeNormal(i+1, 1);
-    scalar_t a3 = (rayPoint(i+2,1) - planePoint(i+2, 1)) * planeNormal(i+2, 1);
-    scalar_t b1 = rayVector(i, 1)* planeNormal(i, 1);
-    scalar_t b2 = rayVector(i+1, 1)* planeNormal(i+1, 1);
-    scalar_t b3 = rayVector(i+1, 1)* planeNormal(i+1, 1);
-    rayVector.block(3,1,i,0) *= (a1+a2+a3)/ (b1+b2+b3);
-  }*/
+  //typedef Eigen::Array <scalar_t, kDIM/3, 1> array_t;
+  //typedef Eigen::Matrix<scalar_t, kDIM,   1> vector_t;
+  //typedef Eigen::Matrix<scalar_t, 3, kDIM/3> matrix_t;  
   
-  Eigen::Map<matrix_t> map1 (((vector_t)(rayPoint - planePoint).cwiseProduct(planeNormal)).data());
-  Eigen::Map<matrix_t> map2 (((vector_t)rayVector.cwiseProduct(planeNormal)).data());
-
-  array_t coeffs = (array_t)map1.colwise().sum()/(array_t)map2.colwise().sum();
+  //Eigen::Map<matrix_t> map1 (((vector_t)(rayPoint - planePoint).cwiseProduct(planeNormal)).data());
+  //Eigen::Map<matrix_t> map2 (((vector_t)rayVector.cwiseProduct(planeNormal)).data());
+  
+  //array_t coeffs = (array_t)map1.colwise().sum()/(array_t)map2.colwise().sum();
   
   // Loopless
-  /*Eigen::Map<matrix_t> rayMap (rayVector.data());
+  //Eigen::Map<matrix_t> rayMap (rayVector.data());
   
-  rayVector.template segment<kDIM/3>(0) = std::move(((array_t)rayMap.row(0)).cwiseProduct(coeffs));
-  rayVector.template segment<kDIM/3>(kDIM/3) = std::move(((array_t)rayMap.row(1)).cwiseProduct(coeffs));
-  rayVector.template segment<kDIM/3>(2*kDIM/3) = std::move(((array_t)rayMap.row(2)).cwiseProduct(coeffs));*/
+  //rayVector.template segment<kDIM/3>(0) = std::move(((array_t)rayMap.row(0)).cwiseProduct(coeffs));
+  //rayVector.template segment<kDIM/3>(kDIM/3) = std::move(((array_t)rayMap.row(1)).cwiseProduct(coeffs));
+  //rayVector.template segment<kDIM/3>(2*kDIM/3) = std::move(((array_t)rayMap.row(2)).cwiseProduct(coeffs));
   
   // Semi loopless
-  for (unsigned i = 0; i < kDIM; i += 3) {
-    rayVector.block(3,1,i,0) *= coeffs(i/3, 1);
+  //for (unsigned i = 0; i < kDIM; i += 3) {
+  //  rayVector.block(3,1,i,0) *= coeffs(i/3, 1);
+  //}
+  typedef Eigen::Array <scalar_t, kDIM, 1> array_t;
+  
+  array_t dat_arr1 = (rayPoint - planePoint).cwiseProduct(planeNormal);
+  array_t dat_arr2 = rayVector.cwiseProduct(planeNormal);
+  scalar_t sums1[kDIM], sums2[kDIM];
+  for (int i = 0; i < kDIM; i += 1) {
+    sums1[i] = dat_arr1[i] + dat_arr1[i+1] + dat_arr1[i+2];
+    sums2[i] = dat_arr2[i] + dat_arr2[i+1] + dat_arr2[i+2];;
+  }
+  for (int i = 0; i < kDIM; i += 1) {
+    sums1[i+1] = dat_arr1[i] - dat_arr1[i+3];
+    sums2[i+1] = dat_arr2[i] - dat_arr2[i+3];
+  }
+  for (int i = 0; i < kDIM; i += 2) {
+    sums1[i+2] = dat_arr1[i] + dat_arr1[i+1] - dat_arr1[i+3] - dat_arr1[i+4];
+    sums2[i+2] = dat_arr2[i] + dat_arr2[i+1] - dat_arr1[i+3] - dat_arr2[i+4];
+  }
+  for (int i = 0; i < kDIM; i+=1) {
+    rayVector[i] *= sums1[i]/sums2[i];
   }
   
   return rayPoint - rayVector;

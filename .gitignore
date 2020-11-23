@@ -48,3 +48,5 @@ perf*
 callgrind*
 massif*
 objdump*
+vectorization*
+command*
