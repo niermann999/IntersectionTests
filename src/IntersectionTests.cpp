@@ -58,12 +58,12 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 1> rayVector,
     sums2[i] = dat_arr2[i] + dat_arr2[i+1] + dat_arr2[i+2];;
   }
   for (int i = 0; i < kDIM; i += 1) {
-    sums1[i+1] = dat_arr1[i] - dat_arr1[i+3];
-    sums2[i+1] = dat_arr2[i] - dat_arr2[i+3];
+    sums1[i+1] = sums1[i+1] + dat_arr1[i] - dat_arr1[i+3];
+    sums2[i+1] = sums2[i+1] + dat_arr2[i] - dat_arr2[i+3];
   }
   for (int i = 0; i < kDIM; i += 2) {
-    sums1[i+2] = dat_arr1[i] + dat_arr1[i+1] - dat_arr1[i+3] - dat_arr1[i+4];
-    sums2[i+2] = dat_arr2[i] + dat_arr2[i+1] - dat_arr1[i+3] - dat_arr2[i+4];
+    sums1[i+2] = sums1[i+2] + dat_arr1[i] + dat_arr1[i+1] - dat_arr1[i+3] - dat_arr1[i+4];
+    sums2[i+2] = sums2[i+2] + dat_arr2[i] + dat_arr2[i+1] - dat_arr1[i+3] - dat_arr2[i+4];
   }
   for (int i = 0; i < kDIM; i+=1) {
     rayVector[i] *= sums1[i]/sums2[i];
