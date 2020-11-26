@@ -53,7 +53,7 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 1> rayVector,
   array_t dat_arr1 = (rayPoint - planePoint).cwiseProduct(planeNormal);
   array_t dat_arr2 = rayVector.cwiseProduct(planeNormal);
   scalar_t sums1[kDIM], sums2[kDIM];
-  for (int i = 0; i < kDIM; i += 1) {
+  /*for (int i = 0; i < kDIM; i += 1) {
     sums1[i] = dat_arr1[i] + dat_arr1[i+1] + dat_arr1[i+2];
     sums2[i] = dat_arr2[i] + dat_arr2[i+1] + dat_arr2[i+2];
   }
@@ -64,12 +64,13 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 1> rayVector,
   for (int i = 0; i < kDIM; i += 1) {
     sums1[i+2] = dat_arr1[i] + dat_arr1[i+1] + dat_arr1[i+2];
     sums2[i+2] = dat_arr2[i] + dat_arr2[i+1] + dat_arr2[i+2];
-  }
-  /*for (int i = 0; i < kDIM; i += 3) {
-    sums1[i] = dat_arr1[i] + dat_arr1[i+1] + dat_arr1[i+2];
-    sums2[i] = dat_arr2[i] + dat_arr2[i+1] + dat_arr2[i+2];;
   }*/
-  for (int i = 0; i < kDIM; i+=1) {
+  
+  for (int i = 0; i < kDIM; i += 3) {
+    sums1[i] = dat_arr1[i] + dat_arr1[i+1] + dat_arr1[i+2];
+    sums2[i] = dat_arr2[i] + dat_arr2[i+1] + dat_arr2[i+2];
+  }
+  for (int i = 0; i < kDIM; i++) {
     rayVector[i] *= sums1[i]/sums2[i];
   }
   
