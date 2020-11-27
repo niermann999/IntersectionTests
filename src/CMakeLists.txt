@@ -21,7 +21,8 @@
   target_link_libraries(
     ${_target}
     PRIVATE
-      Boost::unit_test_framework Boost::timer)
+      Boost::unit_test_framework Boost::timer
+      libVc.a)
   # register as unittest executable
   add_test(NAME ${_name} COMMAND ${_target})
 endmacro()
