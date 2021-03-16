@@ -22,9 +22,16 @@ namespace Test {
 
 BOOST_AUTO_TEST_SUITE(VectIntersect)
 
-unsigned int tests = 1000000;
+unsigned int tests = 10000000;
 
 using Scalar = float;
+
+// Detray style intersection structure to be filled
+template <typename scalar_t, typename vector_t>
+struct intersection {
+  scalar_t dist = std::numeric_limits<scalar_t>::infinity();
+  vector_t path;
+};
 
 //=================================================================================================
 // Eigen
@@ -38,31 +45,36 @@ using Vector4_eig = Eigen::Vector4f;
 auto intersect4D(Vector4_eig rayVector,
                  Vector4_eig rayPoint,
                  Vector4_eig planeNormal,
-                 Vector4_eig planePoint,
-                 std::vector<float> &results) {
+                 Vector4_eig planePoint) {
   float denom = rayVector.dot(planeNormal);
   float nom = (rayPoint - planePoint).dot(planeNormal);
-  results.push_back(nom / denom);
+
+  intersection<float, Vector4_eig> results = {.dist = nom / denom, 
+                                              .path = Vector4_eig(rayPoint - nom*rayVector)};
+  return results;
 }
 
 template <typename scalar_t, unsigned int kDIM>
 auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
                Eigen::Matrix<scalar_t, kDIM, 3> rayPoint,
                Eigen::Matrix<scalar_t, kDIM, 3> planeNormal,
-               Eigen::Matrix<scalar_t, kDIM, 3> planePoint,
-               std::vector<float> &results) {
-  Eigen::Matrix<scalar_t, kDIM, 3> tmpM_1 (std::move((rayPoint - planePoint).cwiseProduct(planeNormal)));
-  Eigen::Matrix<scalar_t, kDIM, 3> tmpM_2 (std::move(rayVector.cwiseProduct(planeNormal)));
-  Eigen::Array<scalar_t, kDIM, 1> coeffs ((tmpM_1.col(0) + tmpM_1.col(1) + tmpM_1.col(3)).array() 
-                                           / (tmpM_2.col(0) + tmpM_2.col(1) + tmpM_2.col(3)).array());
+               Eigen::Matrix<scalar_t, kDIM, 3> planePoint) {
+  using Matrix_t = Eigen::Matrix<scalar_t, kDIM, 3>;
+  using Array_t  = Eigen::Array<scalar_t, kDIM, 1>;
   
-  /*// Broadcast coefficients onto ray-vector matrix
+  Matrix_t tmpM_1 (std::move((rayPoint - planePoint).cwiseProduct(planeNormal)));
+  Matrix_t tmpM_2 (std::move(rayVector.cwiseProduct(planeNormal)));
+  Array_t coeffs ((tmpM_1.col(0) + tmpM_1.col(1) + tmpM_1.col(3)).array() 
+                   / (tmpM_2.col(0) + tmpM_2.col(1) + tmpM_2.col(3)).array());
+
+  // Broadcast coefficients onto ray-vector matrix
   rayVector.col(0).array() *= coeffs;
   rayVector.col(1).array() *= coeffs;
   rayVector.col(2).array() *= coeffs;
   
-  return rayPoint - rayVector;*/
-  //return coeffs;
+  intersection<Array_t, Matrix_t> results = {.dist = coeffs, 
+                                             .path = rayPoint - rayVector};
+  return results;
 }
 
 //----------------------------------------------------Fill Data Types
@@ -115,22 +127,18 @@ std::vector<Vector4_eig, Eigen::aligned_allocator<Vector4_eig> > pps_eg_4D = {pp
 
 template <unsigned int kPlanes> void intersectSingle() {
   for (unsigned int nt = 0; nt < tests; ++nt) {
-    std::vector<float> results;
-    results.reserve(kPlanes);
     for (unsigned int ip = 0; ip < kPlanes; ++ip) {
-      intersect<Scalar, 1>(rv, rp, pn, pps_eg[ip], results);
-      if (nt % 100000 == 0) std::cout << results[0] << std::endl;
+      auto intr = intersect<Scalar, 1>(rv, rp, pn, pps_eg[ip]);
+      if (nt % 100000 == 0) std::cout << intr.path << std::endl;
     }
   }
 }
 
 template <unsigned int kPlanes> void intersectSingle4D() {
-  std::vector<float> results;
-  results.reserve(pps_eg.size());
   for (unsigned int nt = 0; nt < tests; ++nt) {
     for (unsigned int ip = 0; ip < kPlanes; ++ip) {
-      intersect4D(rv_4D, rp_4D, pn_4D, pps_eg_4D[ip], results);
-      if (nt % 100000 == 0) std::cout << results[0] << std::endl;
+      auto intr = intersect4D(rv_4D, rp_4D, pn_4D, pps_eg_4D[ip]);
+      if (nt % 100000 == 0) std::cout << intr.path << std::endl;
     }
   }
 }
@@ -156,8 +164,8 @@ template <unsigned int kPlanes> void intersectMultiple() {
   std::vector<float> results;
   results.reserve(pps_eg.size());
   for (unsigned int nt = 0; nt < tests; ++nt) {
-    intersect<Scalar, kPlanes>(rvM, rpM, pnM, ppM, results);
-    if (nt % 100000 == 0) std::cout << results[0] << std::endl;
+    auto intr = intersect<Scalar, kPlanes>(rvM, rpM, pnM, ppM);
+    if (nt % 100000 == 0) std::cout << intr.path(0) << std::endl;
   }
 }
 
@@ -186,7 +194,7 @@ struct Vector3
 // AoS for vertical vectorization
 // Keep the geometrical vectors as Vc vectors (vertical vect.)
 // Keep the plane points extra to make the struct alignment easier
-template<typename data_t, unsigned int kDIM>
+template<typename data_t>
 struct Vector3_vert
 {
   data_t rayVector, rayPoint, planeNormal;
@@ -196,98 +204,120 @@ struct Vector3_vert
 
 //----------------------------------------------------Define Intersectors
 
-template<typename scalar_t, typename vector_t, unsigned int kDIM>
-auto vc_intersect_vert(Vector3_vert<vector_t, kDIM> &data,
-                       mem_t<kDIM> planePoints,
-                       vector_aligned<scalar_t> &results) {
+template<typename vector_t, typename scalar_t, unsigned int kDIM>
+auto vc_intersect_vert(Vector3_vert<vector_t> &data,
+                       mem_t<kDIM> planePoints) {
 
   vector_t denom_v (data.rayVector * data.planeNormal);
 
   // Vector iterate
-  for (int i = 0; i < planePoints.vectorsCount(); i++) {
+  auto iterations = planePoints.vectorsCount();
+  vector_aligned<intersection<scalar_t, vector_t>> intersections;
+  intersections.reserve(iterations);
+  for (int i = 0; i < iterations; i++) {
     vector_t nom_v ((data.rayPoint - planePoints.vector(i)) * data.planeNormal);
-    results[i] = (nom_v.sum() / denom_v.sum());
+    scalar_t coeff = (nom_v.sum() / denom_v.sum());
+    intersections[i] = {.dist = coeff, 
+                        .path = data.rayPoint - coeff*data.rayVector};
   }
+  return intersections;
 }
 
 
-template<typename data_t, unsigned int kDIM = 3>
-auto vc_intersect_horiz(Vector3<data_t> &rayVector,
-                        Vector3<data_t> &rayPoint,
-                        Vector3<data_t> &planeNormal,
-                        std::vector<Vector3<Scalar>> &pps_struct,
-                        vector_aligned<data_t> &results) {
+template<typename vector_t, typename scalar_t, unsigned int kDIM = 3>
+auto vc_intersect_horiz(Vector3<vector_t> &rayVector,
+                        Vector3<vector_t> &rayPoint,
+                        Vector3<vector_t> &planeNormal,
+                        std::vector<Vector3<scalar_t>> &pps_struct) {
 
-  data_t denom_x (rayVector.x * planeNormal.x);
-  data_t denom_y (rayVector.y * planeNormal.y);
-  data_t denom_z (rayVector.z * planeNormal.z);
+  vector_t denom_x (rayVector.x * planeNormal.x);
+  vector_t denom_y (rayVector.y * planeNormal.y);
+  vector_t denom_z (rayVector.z * planeNormal.z);
 
-  data_t denoms (denom_x + denom_y + denom_z);
+  vector_t denoms (denom_x + denom_y + denom_z);
+
+  vector_aligned<intersection<vector_t, Vector3<vector_t>>> intersections;
+  intersections.reserve(pps_struct.size());
   int j = 0;
   // Vector iterate
   for (Index_v i(Vc::IndexesFromZero); (i < Index_v(pps_struct.size())).isFull(); i += Index_v(Vector3_v::Size)) {
 
     // Only possible without polymorphism etc.!
-    Vector3_v x((vector_aligned<Vector3<Scalar>>::pointer)pps_struct.data(), &Vector3<Scalar>::x, i);
-    Vector3_v y((vector_aligned<Vector3<Scalar>>::pointer)pps_struct.data(), &Vector3<Scalar>::y, i);
-    Vector3_v z((vector_aligned<Vector3<Scalar>>::pointer)pps_struct.data(), &Vector3<Scalar>::z, i);
+    Vector3_v x((vector_aligned<Vector3<Scalar>>::pointer)pps_struct.data(), &Vector3<scalar_t>::x, i);
+    Vector3_v y((vector_aligned<Vector3<Scalar>>::pointer)pps_struct.data(), &Vector3<scalar_t>::y, i);
+    Vector3_v z((vector_aligned<Vector3<Scalar>>::pointer)pps_struct.data(), &Vector3<scalar_t>::z, i);
 
-    data_t nom_x ((rayPoint.x - x) * planeNormal.x);
-    data_t nom_y ((rayPoint.y - y) * planeNormal.y);
-    data_t nom_z ((rayPoint.z - z) * planeNormal.z);
+    vector_t nom_x ((rayPoint.x - x) * planeNormal.x);
+    vector_t nom_y ((rayPoint.y - y) * planeNormal.y);
+    vector_t nom_z ((rayPoint.z - z) * planeNormal.z);
 
-    data_t noms (nom_x + nom_y + nom_z);
-
-    results[j++] = noms / denoms;
+    vector_t coeffs ((nom_x + nom_y + nom_z)/denoms);
+    Vector3<vector_t> path = {.x = (rayPoint.x - vector_t(coeffs[0])*rayVector.x),
+                              .y = (rayPoint.y - vector_t(coeffs[1])*rayVector.y),
+                              .z = (rayPoint.z - vector_t(coeffs[2])*rayVector.z)};
+    intersections[j++] = {.dist = coeffs, .path = path};
   }
+  return intersections;
 }
 
-template<typename data_t, unsigned int kDIM = 3>
-auto vc_intersect_horiz(Vector3<data_t> &rayVector,
-                        Vector3<data_t> &rayPoint,
-                        Vector3<data_t> &planeNormal,
-                        Vector3<mem_t<kDIM> > &planePoints,
-                        vector_aligned<data_t> &results) {
+template<typename vector_t, unsigned int kDIM = 3>
+auto vc_intersect_horiz(Vector3<vector_t> &rayVector,
+                        Vector3<vector_t> &rayPoint,
+                        Vector3<vector_t> &planeNormal,
+                        Vector3<mem_t<kDIM> > &planePoints) {
 
-  data_t denom_x (rayVector.x * planeNormal.x);
-  data_t denom_y (rayVector.y * planeNormal.y);
-  data_t denom_z (rayVector.z * planeNormal.z);
+  vector_t denom_x (rayVector.x * planeNormal.x);
+  vector_t denom_y (rayVector.y * planeNormal.y);
+  vector_t denom_z (rayVector.z * planeNormal.z);
+
+  vector_t denoms (denom_x + denom_y + denom_z);
   
-  for (int i = 0; i < 2; i++) {
-    data_t nom_x ((rayPoint.x - planePoints.x.vector(i)) * planeNormal.x);
-    data_t nom_y ((rayPoint.y - planePoints.y.vector(i)) * planeNormal.y);
-    data_t nom_z ((rayPoint.z - planePoints.z.vector(i)) * planeNormal.z);
+  auto iters = planePoints.x.vectorsCount();
+  vector_aligned<intersection<vector_t, Vector3<vector_t>>> intersections;
+  intersections.reserve(iters);
 
-    data_t noms (nom_x + nom_y + nom_z);
-    data_t denoms (denom_x + denom_y + denom_z);
+  for (int i = 0; i < iters; i++) {
+    vector_t nom_x ((rayPoint.x - planePoints.x.vector(i)) * planeNormal.x);
+    vector_t nom_y ((rayPoint.y - planePoints.y.vector(i)) * planeNormal.y);
+    vector_t nom_z ((rayPoint.z - planePoints.z.vector(i)) * planeNormal.z);
 
-    results[i] = noms / denoms;
+    vector_t coeffs ((nom_x + nom_y + nom_z)/denoms);
+
+    Vector3<vector_t> path = {.x = (rayPoint.x - vector_t(coeffs[0])*rayVector.x),
+                              .y = (rayPoint.y - vector_t(coeffs[1])*rayVector.y),
+                              .z = (rayPoint.z - vector_t(coeffs[2])*rayVector.z)};
+    intersections[i] = {.dist = coeffs, .path = path};
   }
+  return intersections;
 }
 
-template<typename data_t, unsigned int kDIM = 3>
-auto vc_intersect_horiz(Vector3<data_t> &rayVector,
-                        Vector3<data_t> &rayPoint,
-                        Vector3<data_t> &planeNormal,
-                        mem_t<kDIM> &planePoints,
-                        vector_aligned<data_t> &results) {
+template<typename vector_t, unsigned int kDIM = 3>
+auto vc_intersect_horiz(Vector3<vector_t> &rayVector,
+                        Vector3<vector_t> &rayPoint,
+                        Vector3<vector_t> &planeNormal,
+                        mem_t<kDIM> &planePoints) {
 
-  data_t denom_x (rayVector.x * planeNormal.x);
-  data_t denom_y (rayVector.y * planeNormal.y);
-  data_t denom_z (rayVector.z * planeNormal.z);
+  vector_t denom_x (rayVector.x * planeNormal.x);
+  vector_t denom_y (rayVector.y * planeNormal.y);
+  vector_t denom_z (rayVector.z * planeNormal.z);
 
-  data_t denoms (denom_x + denom_y + denom_z);
+  vector_t denoms (denom_x + denom_y + denom_z);
 
+  auto iters = planePoints.vectorsCount()/3;
+  std::vector<intersection<vector_t, Vector3<vector_t>>> intersections;
+  intersections.reserve(iters);
   int j = 0;
-  for (int i = 0; i < 2; i++) {
-    data_t nom_x ((rayPoint.x - planePoints.vector(j++)) * planeNormal.x);
-    data_t nom_y ((rayPoint.y - planePoints.vector(j++)) * planeNormal.y);
-    data_t nom_z ((rayPoint.z - planePoints.vector(j++)) * planeNormal.z);
+  for (int i = 0; i < iters; i++) {
+    vector_t coeffs (((rayPoint.x - planePoints.vector(j++)) * planeNormal.x 
+                    + (rayPoint.y - planePoints.vector(j++)) * planeNormal.y 
+                    + (rayPoint.z - planePoints.vector(j++)) * planeNormal.z) / denoms);
 
-    data_t noms (nom_x + nom_y + nom_z);
-
-    results[i] = noms / denoms;
+    Vector3<vector_t> path = {.x = (rayPoint.x - vector_t(coeffs[0])*rayVector.x),
+                              .y = (rayPoint.y - vector_t(coeffs[1])*rayVector.y),
+                              .z = (rayPoint.z - vector_t(coeffs[2])*rayVector.z)};
+    intersections[i] = {.dist = coeffs, .path = path};
   }
+  return std::move(intersections);
 }
 
 //----------------------------------------------------Fill Data Types
@@ -320,9 +350,9 @@ void fill_vert_Vec() {
   }
 }
 
-Vector3_vert<Vector3_v, 24> intersection_data = {.rayVector   = Vector3_v(rv.array().data()),
-                                                 .rayPoint    = Vector3_v(rp.array().data()), 
-                                                 .planeNormal = Vector3_v(pn.array().data())};
+Vector3_vert<Vector3_v> intersection_data = {.rayVector   = Vector3_v(rv.array().data()),
+                                             .rayPoint    = Vector3_v(rp.array().data()), 
+                                             .planeNormal = Vector3_v(pn.array().data())};
 
 //**************************SoA
 // As structs of vectors
@@ -375,43 +405,31 @@ void fill_inteleaved_mem () {
 //----------------------------------------------------Run Tests
 
 void intersectVc_vert() {
-
-    vector_aligned<Scalar> results;
-    results.reserve(pps_eg.size());
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect_vert<Scalar, Vector3_v, 24>(intersection_data, planePoints, results);
-      if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
+      auto intr = vc_intersect_vert<Vector3_v, Scalar, 24>(intersection_data, planePoints);
+      if (nt % 100000 == 0) std::cout << intr[0].dist << std::endl;
     }
 }
 
 void intersectVc_horiz_AoS() {
-
-    vector_aligned<Vector3_v> results;
-    results.reserve(2*Vector3_v::Size);
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect_horiz<Vector3_v>(rv_v, rp_v, pn_v, pps_struct, results);
-      if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
+      auto intr = vc_intersect_horiz<Vector3_v, Scalar>(rv_v, rp_v, pn_v, pps_struct);
+      if (nt % 100000 == 0) std::cout << intr[0].dist << std::endl;
     }
 }
   
 
 void intersectVc_horiz_SoA() {
-
-    vector_aligned<Vector3_v> results;
-    results.reserve(2*Vector3_v::Size);
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect_horiz<Vector3_v, 8>(rv_v, rp_v, pn_v, pp_mem, results);
-      if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
+      auto intr = vc_intersect_horiz<Vector3_v, 8>(rv_v, rp_v, pn_v, pp_mem);
+      if (nt % 100000 == 0) std::cout << intr[0].dist << std::endl;
     }
 }
 
 void intersectVc_horiz_SoA_interleaved() {
-  
-    vector_aligned<Vector3_v> results;
-    results.reserve(2*Vector3_v::Size);
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect_horiz<Vector3_v, 24>(rv_v, rp_v, pn_v, pps_mem, results);
-      if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
+      auto intr = vc_intersect_horiz<Vector3_v, 24>(rv_v, rp_v, pn_v, pps_mem);
+      if (nt % 100000 == 0) std::cout << intr[0].dist << "\t" << intr[0].path.x << std::endl;
     }
 }
 
@@ -426,9 +444,9 @@ void intersectVc_horiz_SoA_interleaved() {
 
 //BOOST_AUTO_TEST_CASE(MultiIntersection6) { intersectMultiple<6>(); }
 
-BOOST_AUTO_TEST_CASE(SingleIntersection8) { intersectSingle<8>(); }
+//BOOST_AUTO_TEST_CASE(SingleIntersection8) { intersectSingle<8>(); }
 
-BOOST_AUTO_TEST_CASE(SingleIntersection4D8) { intersectSingle4D<8>(); }
+//BOOST_AUTO_TEST_CASE(SingleIntersection4D8) { intersectSingle4D<8>(); }
 
 BOOST_AUTO_TEST_CASE(MultiIntersection8) { intersectMultiple<8>(); }
 
@@ -444,11 +462,11 @@ BOOST_AUTO_TEST_CASE(fillSoA_inter) { fill_inteleaved_mem(); }
 
 BOOST_AUTO_TEST_CASE(fill_vert) { fill_vert_Vec(); }
 
-BOOST_AUTO_TEST_CASE(VcIntersect_Vert) { intersectVc_vert(); }
+//BOOST_AUTO_TEST_CASE(VcIntersect_Vert) { intersectVc_vert(); }
 
-BOOST_AUTO_TEST_CASE(VcIntersect_AoS) { intersectVc_horiz_AoS(); }
+//BOOST_AUTO_TEST_CASE(VcIntersect_AoS) { intersectVc_horiz_AoS(); }
 
-BOOST_AUTO_TEST_CASE(VcIntersect_SoA) { intersectVc_horiz_SoA(); }
+//BOOST_AUTO_TEST_CASE(VcIntersect_SoA) { intersectVc_horiz_SoA(); }
 
 BOOST_AUTO_TEST_CASE(VcIntersect_SoA_inter) { intersectVc_horiz_SoA_interleaved(); }
 
