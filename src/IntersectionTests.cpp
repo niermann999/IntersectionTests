@@ -19,12 +19,155 @@ namespace vecint {
 
 namespace Test {
 
-using Scalar = float;
-using Vector3_eig = Eigen::Matrix<Scalar, 3, 1>;
 
+BOOST_AUTO_TEST_SUITE(VectIntersect)
+
+unsigned int tests = 1000000;
+
+using Scalar = float;
+
+//=================================================================================================
+// Eigen
+//=================================================================================================
+
+using Vector3_eig = Eigen::Matrix<Scalar, 3, 1>;
+using Vector4_eig = Eigen::Vector4f;
+
+//----------------------------------------------------Define Intersectors
+
+auto intersect4D(Vector4_eig rayVector,
+                 Vector4_eig rayPoint,
+                 Vector4_eig planeNormal,
+                 Vector4_eig planePoint,
+                 std::vector<float> &results) {
+  float denom = rayVector.dot(planeNormal);
+  float nom = (rayPoint - planePoint).dot(planeNormal);
+  results.push_back(nom / denom);
+}
+
+template <typename scalar_t, unsigned int kDIM>
+auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
+               Eigen::Matrix<scalar_t, kDIM, 3> rayPoint,
+               Eigen::Matrix<scalar_t, kDIM, 3> planeNormal,
+               Eigen::Matrix<scalar_t, kDIM, 3> planePoint,
+               std::vector<float> &results) {
+  Eigen::Matrix<scalar_t, kDIM, 3> tmpM_1 (std::move((rayPoint - planePoint).cwiseProduct(planeNormal)));
+  Eigen::Matrix<scalar_t, kDIM, 3> tmpM_2 (std::move(rayVector.cwiseProduct(planeNormal)));
+  Eigen::Array<scalar_t, kDIM, 1> coeffs ((tmpM_1.col(0) + tmpM_1.col(1) + tmpM_1.col(3)).array() 
+                                           / (tmpM_2.col(0) + tmpM_2.col(1) + tmpM_2.col(3)).array());
+  
+  /*// Broadcast coefficients onto ray-vector matrix
+  rayVector.col(0).array() *= coeffs;
+  rayVector.col(1).array() *= coeffs;
+  rayVector.col(2).array() *= coeffs;
+  
+  return rayPoint - rayVector;*/
+  //return coeffs;
+}
+
+//----------------------------------------------------Fill Data Types
+
+// Same starting position
+Vector3_eig rv = Vector3_eig(0.0, -1.0, -1.0);
+Vector3_eig rp = Vector3_eig(0.0, 0.0, 10.0);
+
+// For the moment same normal vectors
+Vector3_eig pn = Vector3_eig(0.0, 0.0, 1.0);
+
+// 8 planes
+Vector3_eig pp0_eg = Vector3_eig(0.0, 0.0, 5.0);
+Vector3_eig pp1_eg = Vector3_eig(0.0, 0.0, 6.0);
+Vector3_eig pp2_eg = Vector3_eig(0.0, 0.0, 7.0);
+Vector3_eig pp3_eg = Vector3_eig(0.0, 0.0, 8.0);
+Vector3_eig pp4_eg = Vector3_eig(0.0, 0.0, 9.0);
+Vector3_eig pp5_eg = Vector3_eig(0.0, 0.0, 10.0);
+Vector3_eig pp6_eg = Vector3_eig(0.0, 0.0, 11.0);
+Vector3_eig pp7_eg = Vector3_eig(0.0, 0.0, 12.0);
+Vector3_eig pp8_eg = Vector3_eig(0.0, 0.0, 13.0);
+
+std::vector<Vector3_eig, Eigen::aligned_allocator<Vector3_eig> > pps_eg = {pp0_eg, pp1_eg, pp2_eg, pp3_eg, 
+                                                                           pp4_eg, pp5_eg, pp6_eg, pp7_eg};
+
+// Fixed size vectorizable
+// Same starting position
+Vector4_eig rv_4D = Vector4_eig(0.0, -1.0, -1.0, 0.0);
+Vector4_eig rp_4D = Vector4_eig(0.0, 0.0, 10.0, 0.0);
+
+// For the moment same normal vectors
+Vector4_eig pn_4D = Vector4_eig(0.0, 0.0, 1.0, 0.0);
+
+// 8 planes
+Vector4_eig pp0_eg_4D = Vector4_eig(0.0, 0.0, 5.0, 0.0);
+Vector4_eig pp1_eg_4D = Vector4_eig(0.0, 0.0, 6.0, 0.0);
+Vector4_eig pp2_eg_4D = Vector4_eig(0.0, 0.0, 7.0, 0.0);
+Vector4_eig pp3_eg_4D = Vector4_eig(0.0, 0.0, 8.0, 0.0);
+Vector4_eig pp4_eg_4D = Vector4_eig(0.0, 0.0, 9.0, 0.0);
+Vector4_eig pp5_eg_4D = Vector4_eig(0.0, 0.0, 10.0, 0.0);
+Vector4_eig pp6_eg_4D = Vector4_eig(0.0, 0.0, 11.0, 0.0);
+Vector4_eig pp7_eg_4D = Vector4_eig(0.0, 0.0, 12.0, 0.0);
+Vector4_eig pp8_eg_4D = Vector4_eig(0.0, 0.0, 13.0, 0.0);
+
+std::vector<Vector4_eig, Eigen::aligned_allocator<Vector4_eig> > pps_eg_4D = {pp0_eg_4D, pp1_eg_4D, pp2_eg_4D, 
+                                                                              pp3_eg_4D, pp4_eg_4D, pp5_eg_4D, 
+                                                                              pp6_eg_4D, pp7_eg_4D};
+
+//----------------------------------------------------Run Tests
+
+template <unsigned int kPlanes> void intersectSingle() {
+  for (unsigned int nt = 0; nt < tests; ++nt) {
+    std::vector<float> results;
+    results.reserve(kPlanes);
+    for (unsigned int ip = 0; ip < kPlanes; ++ip) {
+      intersect<Scalar, 1>(rv, rp, pn, pps_eg[ip], results);
+      if (nt % 100000 == 0) std::cout << results[0] << std::endl;
+    }
+  }
+}
+
+template <unsigned int kPlanes> void intersectSingle4D() {
+  std::vector<float> results;
+  results.reserve(pps_eg.size());
+  for (unsigned int nt = 0; nt < tests; ++nt) {
+    for (unsigned int ip = 0; ip < kPlanes; ++ip) {
+      intersect4D(rv_4D, rp_4D, pn_4D, pps_eg_4D[ip], results);
+      if (nt % 100000 == 0) std::cout << results[0] << std::endl;
+    }
+  }
+}
+
+template <unsigned int kPlanes> void intersectMultiple() {
+
+  //constexpr unsigned int kFullDim = kPlanes * 3;
+
+  using VectorM = Eigen::Matrix<Scalar, kPlanes, 3>;
+
+  VectorM rvM;
+  VectorM rpM;
+  VectorM pnM;
+  VectorM ppM;
+
+  for (unsigned int ip = 0; ip < kPlanes; ++ip) {
+    rvM.row(ip) << rv;
+    rpM.row(ip) << rp;
+    pnM.row(ip) << pn;
+    ppM.row(ip) << pps_eg[ip];
+  }
+
+  std::vector<float> results;
+  results.reserve(pps_eg.size());
+  for (unsigned int nt = 0; nt < tests; ++nt) {
+    intersect<Scalar, kPlanes>(rvM, rpM, pnM, ppM, results);
+    if (nt % 100000 == 0) std::cout << results[0] << std::endl;
+  }
+}
+
+//=================================================================================================
+// Vc
+//=================================================================================================
 using Scalar_v  = Vc::float_v;
 using Vector3_v = Vc::float_v;
 using Index_v   = Vector3_v::IndexType;
+
 // Allow Vc to get alignment right
 template <typename T, typename Allocator = Vc::Allocator<T>>
 // Add subscript operator to allow for gather operations
@@ -37,47 +180,33 @@ using mem_t = Vc::Memory<Vector3_v, kDIM>;
 template<typename data_t>
 struct Vector3
 {
-  data_t x, y, z; 
+  data_t x, y, z;
 };
 
 // AoS for vertical vectorization
+// Keep the geometrical vectors as Vc vectors (vertical vect.)
+// Keep the plane points extra to make the struct alignment easier
 template<typename data_t, unsigned int kDIM>
 struct Vector3_vert
 {
   data_t rayVector, rayPoint, planeNormal;
-  mem_t<kDIM> planePoints;
+  //mem_t<kDIM> planePoints;
   //std::vector<data_t, Vc::Allocator<data_t>> planePoints;
 };
 
-
-template <typename scalar_t, unsigned int kDIM>
-auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
-               Eigen::Matrix<scalar_t, kDIM, 3> rayPoint,
-               Eigen::Matrix<scalar_t, kDIM, 3> planeNormal,
-               Eigen::Matrix<scalar_t, kDIM, 3> planePoint) {
-  Eigen::Matrix<scalar_t, kDIM, 3> tmpM_1 (std::move((rayPoint - planePoint).cwiseProduct(planeNormal)));
-  Eigen::Matrix<scalar_t, kDIM, 3> tmpM_2 (std::move(rayVector.cwiseProduct(planeNormal)));
-  Eigen::Array<scalar_t, kDIM, 1> coeffs ((tmpM_1.col(0) + tmpM_1.col(1) + tmpM_1.col(3)).array() / (tmpM_2.col(0) + tmpM_2.col(1) + tmpM_2.col(3)).array());
-  
-  // Broadcast coefficients onto ray-vector matrix
-  rayVector.col(0).array() *= coeffs;
-  rayVector.col(1).array() *= coeffs;
-  rayVector.col(2).array() *= coeffs;
-  
-  return rayPoint - rayVector;
-}
+//----------------------------------------------------Define Intersectors
 
 template<typename scalar_t, typename vector_t, unsigned int kDIM>
 auto vc_intersect_vert(Vector3_vert<vector_t, kDIM> &data,
-                       std::vector<scalar_t> &results) {
+                       mem_t<kDIM> planePoints,
+                       vector_aligned<scalar_t> &results) {
 
   vector_t denom_v (data.rayVector * data.planeNormal);
-  scalar_t denom = denom_v.sum();
 
   // Vector iterate
-  for (int i = 0; i < data.planePoints.vectorsCount(); i++) {
-    vector_t nom_v ((data.rayPoint - data.planePoints.vector(i)) * data.planeNormal);
-    results.push_back(nom_v.sum() / denom_v.sum());
+  for (int i = 0; i < planePoints.vectorsCount(); i++) {
+    vector_t nom_v ((data.rayPoint - planePoints.vector(i)) * data.planeNormal);
+    results[i] = (nom_v.sum() / denom_v.sum());
   }
 }
 
@@ -161,32 +290,7 @@ auto vc_intersect_horiz(Vector3<data_t> &rayVector,
   }
 }
 
-
-BOOST_AUTO_TEST_SUITE(VectIntersect)
-
-unsigned int tests = 1000000;
-//unsigned int tests = 1;
-
-//**************************Eigen
-// Same starting position
-Vector3_eig rv = Vector3_eig(0.0, -1.0, -1.0);
-Vector3_eig rp = Vector3_eig(0.0, 0.0, 10.0);
-
-// For the moment same normal vectors
-Vector3_eig pn = Vector3_eig(0.0, 0.0, 1.0);
-
-// 8 planes
-Vector3_eig pp0_eg = Vector3_eig(0.0, 0.0, 5.0);
-Vector3_eig pp1_eg = Vector3_eig(0.0, 0.0, 6.0);
-Vector3_eig pp2_eg = Vector3_eig(0.0, 0.0, 7.0);
-Vector3_eig pp3_eg = Vector3_eig(0.0, 0.0, 8.0);
-Vector3_eig pp4_eg = Vector3_eig(0.0, 0.0, 9.0);
-Vector3_eig pp5_eg = Vector3_eig(0.0, 0.0, 10.0);
-Vector3_eig pp6_eg = Vector3_eig(0.0, 0.0, 11.0);
-Vector3_eig pp7_eg = Vector3_eig(0.0, 0.0, 12.0);
-Vector3_eig pp8_eg = Vector3_eig(0.0, 0.0, 13.0);
-
-vector_aligned<Vector3_eig> pps_eg = {pp0_eg, pp1_eg, pp2_eg, pp3_eg, pp4_eg, pp5_eg, pp6_eg, pp7_eg};
+//----------------------------------------------------Fill Data Types
 
 //**************************AoS
 
@@ -205,21 +309,32 @@ Vector3<Scalar> pp7 {.x=0.0, .y=0.0, .z=12.0};
 Vector3<Scalar> pp8 {.x=0.0, .y=0.0, .z=13.0};
 
 std::vector<Vector3<Scalar>> pps_struct = {pp0, pp1, pp2, pp3, pp4, pp5, pp6, pp7};
+// Translate the Eigen data structure
+mem_t<24> planePoints;
 
+void fill_vert_Vec() {
+  // vector based access:
+  for (size_t i = 0; i < planePoints.vectorsCount(); i++) {
+    auto pp = Vector3_v((pps_eg.data())[Vector3_v::Size * i]);
+    planePoints.vector(i) = pp;
+  }
+}
+
+Vector3_vert<Vector3_v, 24> intersection_data = {.rayVector   = Vector3_v(rv.array().data()),
+                                                 .rayPoint    = Vector3_v(rp.array().data()), 
+                                                 .planeNormal = Vector3_v(pn.array().data())};
+
+//**************************SoA
+// As structs of vectors
 Vector3<Scalar_v> pp_v;
 Vector3<Scalar_v> pn_v {.x= Vector3_v(0.0), .y=Vector3_v(0.0),  .z=Vector3_v(1.0)};
 Vector3<Scalar_v> rv_v {.x= Vector3_v(0.0), .y=Vector3_v(-1.0), .z=Vector3_v(-1.0)};
 Vector3<Scalar_v> rp_v {.x= Vector3_v(0.0), .y=Vector3_v(0.0),  .z=Vector3_v(10.0)};
 
-//**************************SoA
+// As memory block
+Vector3<mem_t<8>> pp_mem;
 
-Vector3<mem_t<8> > pp_mem;
-
-// Use a custom SoA layout
 void fill_SoA () {
-  #if defined Vc_IMPL_AVX
-  std::cout << "BLA" << std::endl;
-  #endif 
   mem_t<8> pp_mem_x;
   mem_t<8> pp_mem_y;
   mem_t<8> pp_mem_z;
@@ -257,59 +372,14 @@ void fill_inteleaved_mem () {
   pps_mem.vector(5) = z2;
 }
 
-Vector3_vert<Vector3_v, 24> intersection_data;
-void fill_vert_Vec() {
-  mem_t<24> planePoints;
-  // vector access:
-for (size_t i = 0; i < planePoints.vectorsCount(); i++) {
-    auto pp = Vector3_v(pps_eg[i].array().data()); // read
-    planePoints.vector(i) = pp;       // write
-}
-intersection_data = {.rayVector   = Vector3_v(rv.array().data()),
-                     .rayPoint    = Vector3_v(rp.array().data()), 
-                     .planeNormal = Vector3_v(pn.array().data()),
-                     .planePoints = planePoints};
-
-}
-
-template <unsigned int kPlanes> void intersectSingle() {
-  for (unsigned int nt = 0; nt < tests; ++nt) {
-    for (unsigned int ip = 0; ip < kPlanes; ++ip) {
-      auto ips = intersect<Scalar, 1>(rv, rp, pn, pps_eg[ip]);
-    }
-  }
-}
-
-template <unsigned int kPlanes> void intersectMultiple() {
-
-  //constexpr unsigned int kFullDim = kPlanes * 3;
-
-  using VectorM = Eigen::Matrix<Scalar, kPlanes, 3>;
-
-  VectorM rvM;
-  VectorM rpM;
-  VectorM pnM;
-  VectorM ppM;
-
-  for (unsigned int ip = 0; ip < kPlanes; ++ip) {
-    rvM.row(ip) << rv;
-    rpM.row(ip) << rp;
-    pnM.row(ip) << pn;
-    ppM.row(ip) << pps_eg[ip];
-  }
-
-  for (unsigned int nt = 0; nt < tests; ++nt) {
-    auto d = intersect<Scalar, kPlanes>(rvM, rpM, pnM, ppM);
-    //if (nt % 100000 == 0) std::cout << d << std::endl;
-  }
-}
+//----------------------------------------------------Run Tests
 
 void intersectVc_vert() {
 
-    std::vector<Scalar> results;
+    vector_aligned<Scalar> results;
     results.reserve(pps_eg.size());
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect_vert<Scalar, Vector3_v, 24>(intersection_data, results);
+      vc_intersect_vert<Scalar, Vector3_v, 24>(intersection_data, planePoints, results);
       if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
     }
 }
@@ -345,6 +415,29 @@ void intersectVc_horiz_SoA_interleaved() {
     }
 }
 
+
+//----------------------------------------------------Run Boost Tests
+
+//BOOST_AUTO_TEST_CASE(SingleIntersection4) { intersectSingle<4>(); }
+
+//BOOST_AUTO_TEST_CASE(MultiIntersection4) { intersectMultiple<4>(); }
+
+//BOOST_AUTO_TEST_CASE(SingleIntersection6) { intersectSingle<6>(); }
+
+//BOOST_AUTO_TEST_CASE(MultiIntersection6) { intersectMultiple<6>(); }
+
+BOOST_AUTO_TEST_CASE(SingleIntersection8) { intersectSingle<8>(); }
+
+BOOST_AUTO_TEST_CASE(SingleIntersection4D8) { intersectSingle4D<8>(); }
+
+BOOST_AUTO_TEST_CASE(MultiIntersection8) { intersectMultiple<8>(); }
+
+//BOOST_AUTO_TEST_CASE(SingleIntersection9) { intersectSingle<9>(); }
+
+//BOOST_AUTO_TEST_CASE(MultiIntersection9) { intersectMultiple<9>(); }
+
+
+
 BOOST_AUTO_TEST_CASE(fillSoA) { fill_SoA(); }
 
 BOOST_AUTO_TEST_CASE(fillSoA_inter) { fill_inteleaved_mem(); }
@@ -359,21 +452,6 @@ BOOST_AUTO_TEST_CASE(VcIntersect_SoA) { intersectVc_horiz_SoA(); }
 
 BOOST_AUTO_TEST_CASE(VcIntersect_SoA_inter) { intersectVc_horiz_SoA_interleaved(); }
 
-//BOOST_AUTO_TEST_CASE(SingleIntersection4) { intersectSingle<4>(); }
-
-BOOST_AUTO_TEST_CASE(MultiIntersection4) { intersectMultiple<4>(); }
-
-//BOOST_AUTO_TEST_CASE(SingleIntersection6) { intersectSingle<6>(); }
-
-BOOST_AUTO_TEST_CASE(MultiIntersection6) { intersectMultiple<6>(); }
-
-//BOOST_AUTO_TEST_CASE(SingleIntersection8) { intersectSingle<8>(); }
-
-BOOST_AUTO_TEST_CASE(MultiIntersection8) { intersectMultiple<8>(); }
-
-//BOOST_AUTO_TEST_CASE(SingleIntersection9) { intersectSingle<9>(); }
-
-BOOST_AUTO_TEST_CASE(MultiIntersection9) { intersectMultiple<9>(); }
 
 
 BOOST_AUTO_TEST_SUITE_END()
