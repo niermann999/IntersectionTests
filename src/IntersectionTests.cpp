@@ -40,6 +40,15 @@ struct Vector3
   data_t x, y, z; 
 };
 
+// AoS for vertical vectorization
+template<typename data_t, unsigned int kDIM>
+struct Vector3_vert
+{
+  data_t rayVector, rayPoint, planeNormal;
+  mem_t<kDIM> planePoints;
+  //std::vector<data_t, Vc::Allocator<data_t>> planePoints;
+};
+
 
 template <typename scalar_t, unsigned int kDIM>
 auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
@@ -58,12 +67,27 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
   return rayPoint - rayVector;
 }
 
-template<typename data_t>
-auto vc_intersect(Vector3<data_t> &rayVector,
-                  Vector3<data_t> &rayPoint,
-                  Vector3<data_t> &planeNormal,
-                  std::vector<Vector3<Scalar>> &pps_struct,
-                  vector_aligned<data_t> &results) {
+template<typename scalar_t, typename vector_t, unsigned int kDIM>
+auto vc_intersect_vert(Vector3_vert<vector_t, kDIM> &data,
+                       std::vector<scalar_t> &results) {
+
+  vector_t denom_v (data.rayVector * data.planeNormal);
+  scalar_t denom = denom_v.sum();
+
+  // Vector iterate
+  for (int i = 0; i < data.planePoints.vectorsCount(); i++) {
+    vector_t nom_v ((data.rayPoint - data.planePoints.vector(i)) * data.planeNormal);
+    results.push_back(nom_v.sum() / denom_v.sum());
+  }
+}
+
+
+template<typename data_t, unsigned int kDIM = 3>
+auto vc_intersect_horiz(Vector3<data_t> &rayVector,
+                        Vector3<data_t> &rayPoint,
+                        Vector3<data_t> &planeNormal,
+                        std::vector<Vector3<Scalar>> &pps_struct,
+                        vector_aligned<data_t> &results) {
 
   data_t denom_x (rayVector.x * planeNormal.x);
   data_t denom_y (rayVector.y * planeNormal.y);
@@ -89,12 +113,12 @@ auto vc_intersect(Vector3<data_t> &rayVector,
   }
 }
 
-template<typename data_t, unsigned int kDIM>
-auto vc_intersect_SoA(Vector3<data_t> &rayVector,
-                      Vector3<data_t> &rayPoint,
-                      Vector3<data_t> &planeNormal,
-                      Vector3<mem_t<kDIM> > &planePoints,
-                      vector_aligned<data_t> &results) {
+template<typename data_t, unsigned int kDIM = 3>
+auto vc_intersect_horiz(Vector3<data_t> &rayVector,
+                        Vector3<data_t> &rayPoint,
+                        Vector3<data_t> &planeNormal,
+                        Vector3<mem_t<kDIM> > &planePoints,
+                        vector_aligned<data_t> &results) {
 
   data_t denom_x (rayVector.x * planeNormal.x);
   data_t denom_y (rayVector.y * planeNormal.y);
@@ -112,12 +136,12 @@ auto vc_intersect_SoA(Vector3<data_t> &rayVector,
   }
 }
 
-template<typename data_t, unsigned int kDIM>
-auto vc_intersect_SoA(Vector3<data_t> &rayVector,
-                      Vector3<data_t> &rayPoint,
-                      Vector3<data_t> &planeNormal,
-                      mem_t<kDIM> &planePoints,
-                      vector_aligned<data_t> &results) {
+template<typename data_t, unsigned int kDIM = 3>
+auto vc_intersect_horiz(Vector3<data_t> &rayVector,
+                        Vector3<data_t> &rayPoint,
+                        Vector3<data_t> &planeNormal,
+                        mem_t<kDIM> &planePoints,
+                        vector_aligned<data_t> &results) {
 
   data_t denom_x (rayVector.x * planeNormal.x);
   data_t denom_y (rayVector.y * planeNormal.y);
@@ -182,7 +206,6 @@ Vector3<Scalar> pp8 {.x=0.0, .y=0.0, .z=13.0};
 
 std::vector<Vector3<Scalar>> pps_struct = {pp0, pp1, pp2, pp3, pp4, pp5, pp6, pp7};
 
-
 Vector3<Scalar_v> pp_v;
 Vector3<Scalar_v> pn_v {.x= Vector3_v(0.0), .y=Vector3_v(0.0),  .z=Vector3_v(1.0)};
 Vector3<Scalar_v> rv_v {.x= Vector3_v(0.0), .y=Vector3_v(-1.0), .z=Vector3_v(-1.0)};
@@ -234,6 +257,21 @@ void fill_inteleaved_mem () {
   pps_mem.vector(5) = z2;
 }
 
+Vector3_vert<Vector3_v, 24> intersection_data;
+void fill_vert_Vec() {
+  mem_t<24> planePoints;
+  // vector access:
+for (size_t i = 0; i < planePoints.vectorsCount(); i++) {
+    auto pp = Vector3_v(pps_eg[i].array().data()); // read
+    planePoints.vector(i) = pp;       // write
+}
+intersection_data = {.rayVector   = Vector3_v(rv.array().data()),
+                     .rayPoint    = Vector3_v(rp.array().data()), 
+                     .planeNormal = Vector3_v(pn.array().data()),
+                     .planePoints = planePoints};
+
+}
+
 template <unsigned int kPlanes> void intersectSingle() {
   for (unsigned int nt = 0; nt < tests; ++nt) {
     for (unsigned int ip = 0; ip < kPlanes; ++ip) {
@@ -266,32 +304,43 @@ template <unsigned int kPlanes> void intersectMultiple() {
   }
 }
 
-void intersectVc_AoS() {
+void intersectVc_vert() {
+
+    std::vector<Scalar> results;
+    results.reserve(pps_eg.size());
+    for (unsigned int nt = 0; nt < tests; ++nt) {
+      vc_intersect_vert<Scalar, Vector3_v, 24>(intersection_data, results);
+      if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
+    }
+}
+
+void intersectVc_horiz_AoS() {
+
     vector_aligned<Vector3_v> results;
     results.reserve(2*Vector3_v::Size);
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect<Vector3_v>(rv_v, rp_v, pn_v, pps_struct, results);
+      vc_intersect_horiz<Vector3_v>(rv_v, rp_v, pn_v, pps_struct, results);
       if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
     }
 }
   
 
-void intersectVc_SoA() {
+void intersectVc_horiz_SoA() {
 
     vector_aligned<Vector3_v> results;
     results.reserve(2*Vector3_v::Size);
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect_SoA<Vector3_v, 8>(rv_v, rp_v, pn_v, pp_mem, results);
+      vc_intersect_horiz<Vector3_v, 8>(rv_v, rp_v, pn_v, pp_mem, results);
       if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
     }
 }
 
-void intersectVc_SoA_inter() {
+void intersectVc_horiz_SoA_interleaved() {
   
     vector_aligned<Vector3_v> results;
     results.reserve(2*Vector3_v::Size);
     for (unsigned int nt = 0; nt < tests; ++nt) {
-      vc_intersect_SoA<Vector3_v, 24>(rv_v, rp_v, pn_v, pps_mem, results);
+      vc_intersect_horiz<Vector3_v, 24>(rv_v, rp_v, pn_v, pps_mem, results);
       if (nt % 100000 == 0) std::cout << results[0] << "\n" << results[1] << std::endl;
     }
 }
@@ -300,11 +349,15 @@ BOOST_AUTO_TEST_CASE(fillSoA) { fill_SoA(); }
 
 BOOST_AUTO_TEST_CASE(fillSoA_inter) { fill_inteleaved_mem(); }
 
-BOOST_AUTO_TEST_CASE(VcIntersect_AoS) { intersectVc_AoS(); }
+BOOST_AUTO_TEST_CASE(fill_vert) { fill_vert_Vec(); }
 
-BOOST_AUTO_TEST_CASE(VcIntersect_SoA) { intersectVc_SoA(); }
+BOOST_AUTO_TEST_CASE(VcIntersect_Vert) { intersectVc_vert(); }
 
-BOOST_AUTO_TEST_CASE(VcIntersect_SoA_inter) { intersectVc_SoA_inter(); }
+BOOST_AUTO_TEST_CASE(VcIntersect_AoS) { intersectVc_horiz_AoS(); }
+
+BOOST_AUTO_TEST_CASE(VcIntersect_SoA) { intersectVc_horiz_SoA(); }
+
+BOOST_AUTO_TEST_CASE(VcIntersect_SoA_inter) { intersectVc_horiz_SoA_interleaved(); }
 
 //BOOST_AUTO_TEST_CASE(SingleIntersection4) { intersectSingle<4>(); }
 
