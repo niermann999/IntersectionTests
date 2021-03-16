@@ -277,9 +277,9 @@ auto vc_intersect_horiz(Vector3<vector_t> &rayVector,
   intersections.reserve(iters);
 
   for (int i = 0; i < iters; i++) {
-    vector_t nom_x ((rayPoint.x - planePoints.x.vector(i)) * planeNormal.x);
-    vector_t nom_y ((rayPoint.y - planePoints.y.vector(i)) * planeNormal.y);
-    vector_t nom_z ((rayPoint.z - planePoints.z.vector(i)) * planeNormal.z);
+    vector_t nom_x ((rayPoint.x - planePoints.x.vector(i, Vc::Streaming)) * planeNormal.x);
+    vector_t nom_y ((rayPoint.y - planePoints.y.vector(i, Vc::Streaming)) * planeNormal.y);
+    vector_t nom_z ((rayPoint.z - planePoints.z.vector(i, Vc::Streaming)) * planeNormal.z);
 
     vector_t coeffs ((nom_x + nom_y + nom_z)/denoms);
 
@@ -297,25 +297,22 @@ auto vc_intersect_horiz(Vector3<vector_t> &rayVector,
                         Vector3<vector_t> &planeNormal,
                         mem_t<kDIM> &planePoints) {
 
-  vector_t denom_x (rayVector.x * planeNormal.x);
-  vector_t denom_y (rayVector.y * planeNormal.y);
-  vector_t denom_z (rayVector.z * planeNormal.z);
-
-  vector_t denoms (denom_x + denom_y + denom_z);
+  vector_t denoms (rayVector.x*planeNormal.x + rayVector.y*planeNormal.y + rayVector.z*planeNormal.z);
 
   auto iters = planePoints.vectorsCount()/3;
+  auto mem_itr = planePoints.begin(Vc::Streaming);
   std::vector<intersection<vector_t, Vector3<vector_t>>> intersections;
   intersections.reserve(iters);
-  int j = 0;
   for (int i = 0; i < iters; i++) {
-    vector_t coeffs (((rayPoint.x - planePoints.vector(j++)) * planeNormal.x 
-                    + (rayPoint.y - planePoints.vector(j++)) * planeNormal.y 
-                    + (rayPoint.z - planePoints.vector(j++)) * planeNormal.z) / denoms);
+    vector_t coeffs ((rayPoint.x - *std::next(mem_itr)) * planeNormal.x
+                    +(rayPoint.y - *std::next(mem_itr)) * planeNormal.y
+                    +(rayPoint.z - *std::next(mem_itr)) * planeNormal.z);
+    coeffs /= denoms;
 
-    Vector3<vector_t> path = {.x = (rayPoint.x - vector_t(coeffs[0])*rayVector.x),
-                              .y = (rayPoint.y - vector_t(coeffs[1])*rayVector.y),
-                              .z = (rayPoint.z - vector_t(coeffs[2])*rayVector.z)};
-    intersections[i] = {.dist = coeffs, .path = path};
+    Vector3<vector_t> path = {.x = rayPoint.x - rayVector.x*coeffs, 
+                              .y = rayPoint.y - rayVector.y*coeffs, 
+                              .z = rayPoint.z - rayVector.z*coeffs};
+    intersections[i] = {.dist = std::move(coeffs), .path = std::move(path)};
   }
   return std::move(intersections);
 }
