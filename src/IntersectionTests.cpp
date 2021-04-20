@@ -54,13 +54,6 @@ using std::chrono::duration_cast;
 using std::chrono::duration;
 using unit_ms = std::chrono::milliseconds;
 
- // Allow Vc to get alignment right
-  //template <typename T, typename Allocator = std::allocator<T>>
-  //template <typename T, typename Allocator = Eigen::aligned_allocator<T>>
-  //template <typename T, typename Allocator = Vc::Allocator<T>>
-  // Add subscript operator to allow for gather operations from AoS
-  //using vector_a = Vc::Common::AdaptSubscriptOperator<std::vector<T, Allocator>>;
-
 //----------------------------------------------------Fill Data Types
 
   //using namespace vec_test;
@@ -69,14 +62,17 @@ struct data_setup {
   // Make sure the compiler does not optimize the computations away
   Scalar check_sum;
 
-  Vector3<Scalar_v> ray_v, ray_p;
   Vector3<Scalar_v> ray_dir_hor, ray_point_hor;
 
+  aligned::vector<vector_s>         pl_normals, pl_points;
   aligned::vector<Vector3<Scalar> > pl_points_struct, pl_normals_struct;
   aligned::vector<vector_v>         pl_normals_hor, pl_points_hor;
 
   ray_data<Vector4_s> ray;
   plane_data<aligned::vector<vector_s>> planes;
+
+  ray_data<Vector3<Scalar_v>> ray_struct;
+  plane_data<aligned::vector<Vector3<Scalar> >> planes_struct;
 
   ray_data<Vector3<Scalar_v>> ray_hor;
   plane_data<aligned::vector<vector_v>> planes_hor;
@@ -122,8 +118,6 @@ struct data_setup {
     }
 
     // AoS data
-    ray_v = {.x=Scalar_v(0.0), .y=Scalar_v(-1.0), .z=Scalar_v(-1.0)};
-    ray_p = {.x=Scalar_v(0.0), .y=Scalar_v(0.0),  .z=Scalar_v(10.0)};
 
     Vector3<Scalar> pp0 {.x=0.0, .y=0.0, .z=5.0};
     Vector3<Scalar> pp1 {.x=0.0, .y=0.0, .z=6.0};
@@ -182,8 +176,6 @@ struct data_setup {
     Vector4_s ray_dir = Vector4_s::Random();
     Vector4_s ray_point = Vector4_s::Random();
 
-    aligned::vector<vector_s> pl_normals;
-    aligned::vector<vector_s> pl_points;
     pl_normals.reserve(nSurfaces);
     pl_points.reserve(nSurfaces);
     for (size_t i = 0; i < nSurfaces; i++) {
@@ -225,28 +217,36 @@ struct data_setup {
 
     #endif
 
-    // initialize vertical data containers
-    ray = {.direction = ray_dir, .point     = ray_point}; 
+    // vertical data containers
+    ray    = {.direction = ray_dir, 
+              .point     = ray_point}; 
+    planes = {.normals = pl_normals, 
+              .points  = pl_points};
 
-    planes = {.normals = pl_normals, .points  = pl_points};
+    // AoS container
+    ray_struct    = {.direction = ray_dir_hor, 
+                     .point     = ray_point_hor}; 
+    planes_struct = {.normals = pl_normals_struct, 
+                     .points  = pl_points_struct};
 
     // horizontal ray container
-    ray_data<Vector3<Scalar_v>> ray_hor = {.direction = ray_dir_hor,
-                                          .point     = ray_point_hor};
-
-    plane_data<aligned::vector<vector_v>> planes_hor = {.normals = pl_normals_hor,
-                                                        .points  = pl_points_hor};
+    ray_hor    = {.direction = ray_dir_hor,    
+                  .point     = ray_point_hor};
+    planes_hor = {.normals = pl_normals_hor, 
+                  .points  = pl_points_hor};
   }
 };
 //----------------------------------------------------Run Tests
 
+//----------------------------------------------------//
+// Eigen                                              //
+//----------------------------------------------------//
 template <unsigned int kPlanes> void intersectEigen4D(ray_data<Vector4_s> ray,
-                                                      plane_data<aligned::vector<vector_s>> planes,
-                                                      Scalar check_sum) {
-  // Just the intersections
+                                                      plane_data<aligned::vector<vector_s>> planes) {
+  Scalar check_sum = 0.0;
   auto padding = alignment % Scalar_v::Size;
 
-  auto t1_eig = clock::now();
+  auto t1 = clock::now();
   for (size_t nt = 0; nt < tests; ++nt) {
     for (size_t i = 0; i < nSurfaces; i++) {
       auto intersection = eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj);
@@ -261,25 +261,26 @@ template <unsigned int kPlanes> void intersectEigen4D(ray_data<Vector4_s> ray,
       #endif
     }
   }
-  auto t2_eig = clock::now();
-  auto duration_eig = duration_cast<unit_ms>(t2_eig - t1_eig);
-  std::cout << "Eigen 4D: " << duration_eig.count() << "ms\n";
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Eigen 4D: " << duration.count() << "ms\n";
   std::cout << check_sum << std::endl;
 }
 
 template <unsigned int kPlanes> void intersectEigen4D_res(ray_data<Vector4_s> ray,
-                                                          plane_data<aligned::vector<vector_s>> planes,
-                                                          Scalar check_sum) {
-  aligned::vector<intersection<Scalar, Vector4_s>> results_scalar;
-  results_scalar.reserve(planes.points.size());
+                                                          plane_data<aligned::vector<vector_s>> planes) {
+  Scalar check_sum = 0.0;
 
-  auto t1_eig_wres = clock::now();
+  aligned::vector<intersection<Scalar, Vector4_s>> results;
+  results.reserve(planes.points.size());
+
+  auto t1 = clock::now();
   for (size_t nt = 0; nt < tests; ++nt) {
-      eig_intersect_4D<vector_s>(ray, planes, results_scalar);
-      for (auto &intersection : results_scalar) check_sum += intersection.dist;
+      eig_intersect_4D<vector_s>(ray, planes, results);
+      for (auto &intersection : results) check_sum += intersection.dist;
       #ifdef DEBUG
       if (nt % (tests-1)/2 == 0) {
-        for (auto &intersection : results_scalar) {
+        for (auto &intersection : results) {
           std::cout << "\n" << intersection.dist << std::endl;
           for (int i = 0; i < 4; i++) {
             std::cout << intersection.path[i] << ", ";
@@ -287,11 +288,204 @@ template <unsigned int kPlanes> void intersectEigen4D_res(ray_data<Vector4_s> ra
         }
       }
       #endif
-      results_scalar.clear();
+      results.clear();
   }
-  auto t2_eig_wres = clock::now();
-  auto duration_eig_wres = duration_cast<unit_ms>(t2_eig_wres - t1_eig_wres);
-  std::cout << "Eigen 4D (w vec): " << duration_eig_wres.count() << "ms\n";
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Eigen 4D (w vec): " << duration.count() << "ms\n";
+  std::cout << check_sum << std::endl;
+}
+
+template <unsigned int kPlanes> void intersectVcVert(ray_data<Vector4_s> ray,
+                                                      plane_data<aligned::vector<vector_s>> planes) {
+  Scalar check_sum = 0.0;
+  
+  auto t1 = clock::now();
+  for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t i = 0; i < nSurfaces; i++) {
+      auto intersection = vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj);
+      check_sum += intersection.dist;
+      #ifdef DEBUG
+      if (nt % (tests-1)/2 == 0) {
+        std::cout << "\n" << intersection.dist << std::endl;
+        for (int i = 0; i < 4; i++) {
+          std::cout << intersection.path[i] << ", ";
+        }
+      }
+      #endif
+    }
+  }
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Vc vert: " << duration.count() << "ms\n";
+  std::cout << check_sum << std::endl;
+}
+
+template <unsigned int kPlanes> void intersectVcVert_res(ray_data<Vector4_s> ray,
+                                                        plane_data<aligned::vector<vector_s>> planes) {
+  Scalar check_sum = 0.0;
+  
+  aligned::vector<intersection<Scalar, Vc::SimdArray<Scalar, 4>>> results;
+  results.reserve(planes.points.size());
+
+  auto t1 = clock::now();
+  for (size_t nt = 0; nt < tests; ++nt) {
+    vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
+    for (auto &intersection : results) check_sum += intersection.dist;
+    #ifdef DEBUG
+    if (nt % (tests-1)/2 == 0) {
+      for (auto &intersection : results) {
+        std::cout << "\n" << intersection.dist << std::endl;
+        for (int i = 0; i < 4; i++) {
+          std::cout << intersection.path[i] << ", ";
+        }
+      }
+    }
+    #endif
+    results.clear();
+  }
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Vc vert (w vec): " << duration.count() << "ms\n";
+  std::cout << check_sum << std::endl;
+}
+
+
+template <unsigned int kPlanes> void intersectVcHybrid(ray_data<Vector3<Scalar_v>> ray,
+                                                       plane_data<aligned::vector<Vector3<Scalar>>> planes) {
+  Scalar   check_sum   = 0.0;
+  Scalar_v check_sum_v = 0.0;
+
+  auto t1 = clock::now();
+  for (size_t nt = 0; nt < tests; ++nt) {
+    for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
+      Scalar_v pns_x = planes.normals[i][&Vector3<Scalar>::x];
+      Scalar_v pns_y = planes.normals[i][&Vector3<Scalar>::y];
+      Scalar_v pns_z = planes.normals[i][&Vector3<Scalar>::z];
+      Vector3<Scalar_v> pl_normal_strc {.x = pns_x, .y = pns_y, .z = pns_z};
+
+      Scalar_v pps_x = planes.points[i][&Vector3<Scalar>::x];
+      Scalar_v pps_y = planes.points[i][&Vector3<Scalar>::y];
+      Scalar_v pps_z = planes.points[i][&Vector3<Scalar>::z];
+      Vector3<Scalar_v> pl_point_strc {.x = pps_x, .y = pps_y, .z = pps_z};
+
+      auto intersection = vc_intersect_hybrid<Scalar_v>(ray.direction, ray.point, pl_normal_strc, pl_point_strc);
+      check_sum_v += intersection.dist;
+      #ifdef DEBUG
+      if (nt % (tests-1)/2 == 0) {
+        std::cout << intersection.dist << std::endl;
+        std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
+      }
+      #endif
+    }
+  }
+  check_sum = check_sum_v.sum();
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Vc hybrd: " << duration.count() << "ms\n";
+  std::cout << check_sum << std::endl;
+}
+
+template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<Vector3<Scalar_v>> ray,
+                                                           plane_data<aligned::vector<Vector3<Scalar>>> planes) {
+  Scalar   check_sum   = 0.0;
+  Scalar_v check_sum_v = 0.0;
+
+  aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
+  results.reserve(planes.normals.size());
+  
+  auto t1 = clock::now();
+  for (size_t nt = 0; nt < tests; ++nt) {
+      vc_intersect_hybrid<Scalar_v>(ray.direction, ray.point, planes.normals, planes.points, results);
+      for (auto &intersection : results) check_sum_v += intersection.dist;
+      #ifdef DEBUG
+      if (nt % (tests-1)/2 == 0) {
+        for (auto &intersection : results) {
+          std::cout << intersection.dist << std::endl;
+          std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
+        }
+      }
+      #endif
+      results.clear();
+  }
+  check_sum = check_sum_v.sum();
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Vc hybrd (w vec): " << duration.count() << "ms\n";
+  std::cout << check_sum << std::endl;
+}
+
+
+template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>> ray,
+                                                      plane_data<aligned::vector<vector_v>> planes) {
+  Scalar   check_sum   = 0.0;
+  Scalar_v check_sum_v = 0.0;
+
+  auto padding = planes.points.front().padding();
+
+  // Access to raw data that will be loaded as scalar_v
+  size_t n_bytes = planes.points.size() * (planes.points.front().n_elemts() + padding);
+  size_t offset  = Scalar_v::Size + padding;
+  if (n_bytes % (3*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
+  size_t n_vec = n_bytes / (3*offset);
+
+  auto t1 = clock::now();
+  for (size_t nt = 0; nt < tests; ++nt) {
+      auto pl_normals_ptr = const_cast<Scalar*>(planes.normals.front().data());
+      auto pl_points_ptr  = const_cast<Scalar*>(planes.points.front().data());
+
+      for (size_t i = 0; i < n_vec; i++) {
+        auto intersection = vc_intersect_horiz<Scalar_v, Scalar*>(ray, pl_normals_ptr, pl_points_ptr, offset);
+
+        check_sum_v     += intersection.dist;
+        pl_normals_ptr += 3 * offset;
+        pl_points_ptr  += 3 * offset;
+
+        #ifdef DEBUG 
+        if (nt % (tests-1)/2 == 0) {
+          std::cout << intersection.dist << std::endl;
+          std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
+                    << intersection.path.z << std::endl;
+        }
+        #endif
+      }
+  }
+  check_sum = check_sum_v.sum();
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Vc horizontal: " << duration.count() << "ms" << std::endl;
+  std::cout << check_sum << std::endl;
+}
+
+template <unsigned int kPlanes> void intersectVcHoriz_res(ray_data<Vector3<Scalar_v>> ray,
+                                                          plane_data<aligned::vector<vector_v>> planes) {
+  Scalar   check_sum   = 0.0;
+  Scalar_v check_sum_v = 0.0;
+
+  auto padding = planes.points.front().padding();
+
+  aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
+  results.reserve(planes.points.size() * planes.points.front().n_elemts()/Scalar_v::Size);
+
+  auto t1 = clock::now();
+  for (size_t nt = 0; nt < tests; ++nt) {
+      vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray, planes, results, padding);
+      for (auto &intersection : results) check_sum_v += intersection.dist;
+      #ifdef DEBUG 
+      if (nt % (tests-1)/2 == 0) {
+        for (auto &intersection : results) {
+          std::cout << intersection.dist << std::endl;
+          std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
+                    << intersection.path.z << std::endl;
+        }
+      }
+      #endif
+      results.clear();
+  }
+  check_sum = check_sum_v.sum();
+  auto t2 = clock::now();
+  auto duration = duration_cast<unit_ms>(t2 - t1);
+  std::cout << "Vc horizontal (w vec): " << duration.count() << "ms" << std::endl;
   std::cout << check_sum << std::endl;
 }
 
@@ -301,8 +495,24 @@ template <unsigned int kPlanes> void intersectEigen4D_res(ray_data<Vector4_s> ra
 BOOST_FIXTURE_TEST_SUITE(VectIntersect, data_setup)
 
 
-BOOST_AUTO_TEST_CASE(SingleIntersection4D) { intersectEigen4D<nSurfaces>(ray, planes, check_sum); }
-BOOST_AUTO_TEST_CASE(SingleIntersection4D_res) { intersectEigen4D_res<nSurfaces>(ray, planes, check_sum); }
+BOOST_AUTO_TEST_CASE(IntersectEigen4D)    {intersectEigen4D<nSurfaces>(ray, planes);}
+BOOST_AUTO_TEST_CASE(IntersectEigen4D_res){intersectEigen4D_res<nSurfaces>(ray, planes);}
+
+
+BOOST_AUTO_TEST_CASE(IntersectVcVert)     {intersectVcVert<nSurfaces>(ray, planes);}
+BOOST_AUTO_TEST_CASE(IntersectVcVert_res) {intersectVcVert_res<nSurfaces>(ray, planes);}
+
+
+BOOST_AUTO_TEST_CASE(IntersectVcHybrid)     {intersectVcHybrid<nSurfaces>(ray_struct, 
+                                                                          planes_struct);}
+BOOST_AUTO_TEST_CASE(IntersectVcHybrid_res) {intersectVcHybrid_res<nSurfaces>(ray_struct, 
+                                                                              planes_struct);}
+
+
+BOOST_AUTO_TEST_CASE(IntersectVcHoriz)    {intersectVcHoriz<nSurfaces>(ray_hor, 
+                                                                       planes_hor);}
+BOOST_AUTO_TEST_CASE(IntersectVcHorizres) {intersectVcHoriz_res<nSurfaces>(ray_hor, 
+                                                                           planes_hor);}
 
 
 BOOST_AUTO_TEST_SUITE_END()
