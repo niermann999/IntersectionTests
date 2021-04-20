@@ -15,6 +15,10 @@
    SYSTEM PUBLIC ${EIGEN_INCLUDE_DIRS}
   )
 
+  target_include_directories(${_target} 
+   PRIVATE ${CMAKE_INSTALL_INCLUDEDIR}
+  )
+
   target_include_directories(
     ${_target}
     PRIVATE Core ${CMAKE_CURRENT_SOURCE_DIR})
