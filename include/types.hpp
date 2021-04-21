@@ -126,9 +126,9 @@ struct alignas(alignment) MatrixV {
   using obj_type   = Derived;
   obj_type obj;
   //void init() {obj = decltype(obj)::Random();}
-  const size_t n_elemts() {return obj.rows() * obj.cols();}
-  const value_type* const data() {return obj.data();}
-  const size_t padding() {return (alignment - n_elemts() * sizeof(value_type)) / sizeof(value_type);}
+  constexpr size_t n_elemts() {return obj.rows() * obj.cols();}
+  const value_type* data() {return obj.data();}
+  constexpr size_t padding() {return (alignment - n_elemts() * sizeof(value_type)) / sizeof(value_type);}
 };
 
 // Affine transform is not derived from Eigen::DenseBase
@@ -138,7 +138,7 @@ struct alignas(alignment) MatrixV<Transform4> {
   using obj_type   = Transform4;
   Transform4 obj;
   const size_t n_elemts() {return obj.rows() * obj.cols();}
-  const value_type* const data() {return obj.data();}
+  const value_type* data() {return obj.data();}
   const size_t padding() {return (alignment - n_elemts() * sizeof(value_type)) / sizeof(value_type);}
 };
 

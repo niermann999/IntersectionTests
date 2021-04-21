@@ -361,8 +361,6 @@ template<typename scalar_v>
 auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
                          plane_data<Vector3<scalar_v>>& planes) {
 
-  using scalar_t = typename scalar_v::value_type;
-
   /*if (pns_struct.size() != pps_struct.size()) {
     std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
     return;

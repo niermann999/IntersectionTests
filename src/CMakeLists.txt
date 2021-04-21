@@ -40,6 +40,12 @@ macro(add_benchmark _name)
 
   target_compile_features(${_target} PUBLIC cxx_std_17)
 
+  target_compile_definitions(
+    ${_target}
+    PRIVATE "-DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON" "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF")
+
+  add_compile_options(-pthread)
+
   target_include_directories(${_target} 
    PRIVATE ${CMAKE_BENCH_INCLUDEDIR}
   )

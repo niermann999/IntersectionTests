@@ -185,8 +185,6 @@ struct data_setup {
     }
 
     // AoS data
-    aligned::vector<Vector3<Scalar> > pl_normals_struct;
-    aligned::vector<Vector3<Scalar> > pl_points_struct;
     pl_normals_struct.reserve(nSurfaces);
     pl_points_struct.reserve(nSurfaces);
 
@@ -196,11 +194,9 @@ struct data_setup {
     }
 
     // Horizontal data (interleaved)
-    Vector3<Scalar_v> ray_dir_hor   {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
-    Vector3<Scalar_v> ray_point_hor {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
+    ray_dir_hor  = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
+    ray_point_hor = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
 
-    aligned::vector<vector_v> pl_normals_hor;
-    aligned::vector<vector_v> pl_points_hor;
     // dimension * number of matrices needed
     for (size_t offset = 0; offset < 3 * nSurfaces/Scalar_v::Size; offset++) {
       pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()});
@@ -245,7 +241,6 @@ struct data_setup {
 template <unsigned int kPlanes> void intersectEigen4D(ray_data<Vector4_s>& ray,
                                                       plane_data<aligned::vector<vector_s>>& planes) {
   Scalar check_sum = 0.0;
-  auto padding = alignment % Scalar_v::Size;
 
   auto t1 = clock::now();
   for (size_t nt = 0; nt < tests; ++nt) {
@@ -369,9 +364,9 @@ template <unsigned int kPlanes> void intersectVcHybrid(ray_data<Vector3<Scalar_v
       Scalar_v pps_y = planes.points[i][&Vector3<Scalar>::y];
       Scalar_v pps_z = planes.points[i][&Vector3<Scalar>::z];
       Vector3<Scalar_v> pl_point_strc {.x = pps_x, .y = pps_y, .z = pps_z};
-      plane_data<Vector3<Scalar_v>> planes = {.normals = pl_normal_strc, .points = pl_point_strc};
+      plane_data<Vector3<Scalar_v>> planes_strcts = {.normals = pl_normal_strc, .points = pl_point_strc};
 
-      auto intersection = vc_intersect_hybrid<Scalar_v>(ray, planes);
+      auto intersection = vc_intersect_hybrid<Scalar_v>(ray, planes_strcts);
       check_sum_v += intersection.dist;
       #ifdef DEBUG
       if (nt % (tests-1)/2 == 0) {
