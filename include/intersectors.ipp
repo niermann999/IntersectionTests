@@ -315,12 +315,8 @@ auto vc_intersect_hybrid(Vector3<scalar_v> &rayVector,
 
 
 template<typename scalar_v>
-void vc_intersect_hybrid(Vector3<scalar_v> &rayVector,
-                         Vector3<scalar_v> &rayPoint,
-                         //aligned::vector<vector_s> &pns_struct,
-                         //aligned::vector<vector_s> &pps_struct,
-                         aligned::vector<Vector3<typename scalar_v::value_type>> &pns_struct,
-                         aligned::vector<Vector3<typename scalar_v::value_type>> &pps_struct,
+void vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
+                         plane_data<aligned::vector<Vector3<typename scalar_v::value_type>>> &planes,
                          aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results) {
 
   using scalar_t = typename scalar_v::value_type;
@@ -331,41 +327,40 @@ void vc_intersect_hybrid(Vector3<scalar_v> &rayVector,
   }*/
 
   // Vector iterate
-  for (Index_v i(scalar_v::IndexesFromZero()); (i < Index_v(pps_struct.size())).isFull(); i += Index_v(scalar_v::Size)) {
-    scalar_v pps_x = pps_struct[i][&Vector3<scalar_t>::x];
-    scalar_v pps_y = pps_struct[i][&Vector3<scalar_t>::y];
-    scalar_v pps_z = pps_struct[i][&Vector3<scalar_t>::z];
+  for (Index_v i(scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(scalar_v::Size)) {
+    scalar_v pps_x = planes.points[i][&Vector3<scalar_t>::x];
+    scalar_v pps_y = planes.points[i][&Vector3<scalar_t>::y];
+    scalar_v pps_z = planes.points[i][&Vector3<scalar_t>::z];
 
-    scalar_v pns_x = pns_struct[i][&Vector3<scalar_t>::x];
-    scalar_v pns_y = pns_struct[i][&Vector3<scalar_t>::y];
-    scalar_v pns_z = pns_struct[i][&Vector3<scalar_t>::z];
+    scalar_v pns_x = planes.normals[i][&Vector3<scalar_t>::x];
+    scalar_v pns_y = planes.normals[i][&Vector3<scalar_t>::y];
+    scalar_v pns_z = planes.normals[i][&Vector3<scalar_t>::z];
 
-    scalar_v denom_x (rayVector.x * pns_x);
-    scalar_v denom_y (rayVector.y * pns_y);
-    scalar_v denom_z (rayVector.z * pns_z);
+    scalar_v denom_x (ray.direction.x * pns_x);
+    scalar_v denom_y (ray.direction.y * pns_y);
+    scalar_v denom_z (ray.direction.z * pns_z);
 
     scalar_v denoms (denom_x + denom_y + denom_z);
 
-    scalar_v nom_x ((rayPoint.x - pps_x) * pns_x);
-    scalar_v nom_y ((rayPoint.y - pps_y) * pns_y);
-    scalar_v nom_z ((rayPoint.z - pps_z) * pns_z);
+    scalar_v nom_x ((ray.point.x - pps_x) * pns_x);
+    scalar_v nom_y ((ray.point.y - pps_y) * pns_y);
+    scalar_v nom_z ((ray.point.z - pps_z) * pns_z);
 
     scalar_v coeffs ((nom_x + nom_y + nom_z) / denoms);
 
-    Vector3<scalar_v> path = {.x = (rayPoint.x - coeffs*rayVector.x),
-                              .y = (rayPoint.y - coeffs*rayVector.y),
-                              .z = (rayPoint.z - coeffs*rayVector.z)};
+    Vector3<scalar_v> path = {.x = (ray.point.x - coeffs*ray.direction.x),
+                              .y = (ray.point.y - coeffs*ray.direction.y),
+                              .z = (ray.point.z - coeffs*ray.direction.z)};
 
-    results.push_back({.path = std::move(path), .dist = std::move(coeffs)});
+    results.emplace_back(intersection<scalar_v, Vector3<scalar_v>>{.path = std::move(path), .dist = std::move(coeffs)});
   }
 }
 
 
 template<typename scalar_v>
-auto vc_intersect_hybrid(Vector3<scalar_v> &rayVector,
-                         Vector3<scalar_v> &rayPoint,
-                         Vector3<scalar_v> pns,
-                         Vector3<scalar_v> pps) {
+auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
+                         plane_data<Vector3<scalar_v>>& planes) {
+
   using scalar_t = typename scalar_v::value_type;
 
   /*if (pns_struct.size() != pps_struct.size()) {
@@ -373,21 +368,21 @@ auto vc_intersect_hybrid(Vector3<scalar_v> &rayVector,
     return;
   }*/
 
-  scalar_v denom_x (rayVector.x * pns.x);
-  scalar_v denom_y (rayVector.y * pns.y);
-  scalar_v denom_z (rayVector.z * pns.z);
+  scalar_v denom_x (ray.direction.x * planes.normals.x);
+  scalar_v denom_y (ray.direction.y * planes.normals.y);
+  scalar_v denom_z (ray.direction.z * planes.normals.z);
 
   scalar_v denoms (denom_x + denom_y + denom_z);
 
-  scalar_v nom_x ((rayPoint.x - pps.x) * pns.x);
-  scalar_v nom_y ((rayPoint.y - pps.y) * pns.y);
-  scalar_v nom_z ((rayPoint.z - pps.z) * pns.z);
+  scalar_v nom_x ((ray.point.x - planes.points.x) * planes.normals.x);
+  scalar_v nom_y ((ray.point.y - planes.points.y) * planes.normals.y);
+  scalar_v nom_z ((ray.point.z - planes.points.z) * planes.normals.z);
 
   scalar_v coeffs ((nom_x + nom_y + nom_z) / denoms);
 
-  Vector3<scalar_v> path = {.x = (rayPoint.x - coeffs*rayVector.x),
-                            .y = (rayPoint.y - coeffs*rayVector.y),
-                            .z = (rayPoint.z - coeffs*rayVector.z)};
+  Vector3<scalar_v> path = {.x = (ray.point.x - coeffs*ray.direction.x),
+                            .y = (ray.point.y - coeffs*ray.direction.y),
+                            .z = (ray.point.z - coeffs*ray.direction.z)};
 
   intersection<scalar_v, Vector3<scalar_v>> res = {.path = std::move(path), .dist = std::move(coeffs)};
   return res;
@@ -447,7 +442,7 @@ template<typename scalar_v, typename data_ptr_t, size_t kDIM = 3>
 auto vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
                         data_ptr_t pl_normals_ptr,
                         data_ptr_t pl_points_ptr,
-                        size_t offset) {
+                        size_t& offset) {
     /*if (pl_normals_ptr == nullptr || pl_points_ptr == nullptr) {
       std::cerr << "Passed invalid data collection pointer to intersection" << std::endl;
       return intersection<scalar_v, Vector3<scalar_v>>{};
@@ -480,32 +475,5 @@ auto vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
     return std::move(res);
 }
 
-
-template<typename scalar_v,typename vector_v, size_t kDIM = 4>
-bool initialize_data_ptrs (Scalar **plane_normals,
-                                  Scalar **plane_points,
-                                  aligned::vector<vector_v>& normals_vec,
-                                  aligned::vector<vector_v>& points_vec,
-                                  size_t& offset,
-                                  Scalar padding = 0) {
-
-    //TODO: make constexpr
-    /*if (points_vec.size() != normals_vec.size()) {
-      std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
-      plane_normals = nullptr;
-      plane_points = nullptr;
-      return false;
-    }*/
-
-    // Access to raw data that will be loaded as scalar_v
-    size_t n_bytes = points_vec.size() * (points_vec.front().n_elemts() + padding);
-    offset  = scalar_v::Size + padding;
-    //if (n_bytes % (kDIM*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
-
-    *plane_points = const_cast<Scalar*>(points_vec.front().data());
-    *plane_normals = const_cast<Scalar*>(normals_vec.front().data());
-
-    return *plane_points != nullptr && *plane_normals != nullptr;
-}
 
 } // namespace vec_intr

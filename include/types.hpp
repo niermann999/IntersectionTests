@@ -66,13 +66,13 @@ namespace aligned {
 
 // Use in AoS
 template<typename data_t>
-struct /*alignas(alignment)*/ Vector3
+struct Vector3
 {
   data_t x, y, z;
 };
 
 template<typename data_t>
-struct /*alignas(alignment)*/ Vector4
+struct Vector4
 {
   data_t x, y, z, t;
 };
@@ -81,7 +81,7 @@ struct /*alignas(alignment)*/ Vector4
 // Keep the geometrical vectors as Vc vectors (vertical vect.)
 // Keep the plane points extra to make the struct alignment easier
 template<typename data_t>
-struct /*alignas(alignment)*/ ray_data
+struct alignas(alignment) ray_data
 {
   data_t direction, point;
 };
@@ -90,14 +90,14 @@ struct /*alignas(alignment)*/ ray_data
 // Keep the geometrical vectors as Vc vectors (vertical vect.)
 // Keep the plane points extra to make the struct alignment easier
 template<typename data_t>
-struct /*alignas(alignment)*/ plane_data
+struct alignas(alignment) plane_data
 {
   data_t normals, points;
 };
 
 // detray style intersection structure to be filled as result type
 template <typename scalar_t, typename vector_t = Vector3_s>
-struct /*alignas(alignment)*/ intersection {
+struct alignas(alignment) intersection {
   vector_t path;
   scalar_t dist = std::numeric_limits<scalar_t>::infinity();
 };
