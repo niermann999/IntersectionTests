@@ -26,6 +26,10 @@ build*
 # =====================
 !doc/doxygen.config
 
+# Google Benchmark
+# ================
+benchmark*
+
 #json output
 *.json
 #root output

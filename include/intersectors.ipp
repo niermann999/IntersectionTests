@@ -429,9 +429,9 @@ void vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
     planePoint.load( pp_ptr += offset, Vc::Streaming);
     coeffs /= denoms;
 
-    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, -ray.point.x), 
-                              .y = Vc::fma(coeffs, ray.direction.y, -ray.point.y), 
-                              .z = Vc::fma(coeffs, ray.direction.z, -ray.point.z)};
+    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, -ray.direction.x, ray.point.x), 
+                              .y = Vc::fma(coeffs, -ray.direction.y, ray.point.y), 
+                              .z = Vc::fma(coeffs, -ray.direction.z, ray.point.z)};
 
     results.emplace_back(intersection<scalar_v, Vector3<scalar_v>>{.path = std::move(path), .dist = std::move(coeffs)});
   }
@@ -467,9 +467,9 @@ auto vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
     planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
     coeffs /= denoms;
 
-    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, -ray.point.x), 
-                              .y = Vc::fma(coeffs, ray.direction.y, -ray.point.y), 
-                              .z = Vc::fma(coeffs, ray.direction.z, -ray.point.z)};
+    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, -ray.direction.x, ray.point.x), 
+                              .y = Vc::fma(coeffs, -ray.direction.y, ray.point.y), 
+                              .z = Vc::fma(coeffs, -ray.direction.z, ray.point.z)};
 
     intersection<scalar_v, Vector3<scalar_v>> res = {.path = std::move(path), .dist = std::move(coeffs)};
     return std::move(res);

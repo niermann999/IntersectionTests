@@ -19,10 +19,11 @@
 #include <boost/random/variate_generator.hpp>
 #include <boost/generator_iterator.hpp>
 
+#include <benchmark/benchmark.h>
+
 namespace vec_intr {
 
 namespace test {
-
 
 // This is a typedef for a random number generator.
 // Try boost::mt19937 or boost::ecuyer1988 instead of boost::minstd_rand

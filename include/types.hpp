@@ -44,7 +44,6 @@ using Transform4 = Eigen::Transform<Scalar, 4, Eigen::Affine>;
 // Check for max alignment!!e.g. Vc::VectorAlignment 
 //constexpr size_t alignment = hardware_constructive_interference_size;
 constexpr size_t alignment = alignof(Scalar_v);
-//constexpr size_t alignment = 16;
 namespace aligned {
   // Allow Vc to get alignment right
   //template <typename T, typename Allocator = std::allocator<T>>
