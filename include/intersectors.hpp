@@ -1,3 +1,6 @@
+ /**
+ * author: joana.niermann@cern.ch
+ **/
 #include <types.hpp>
 
 #pragma once

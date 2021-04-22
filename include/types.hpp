@@ -1,3 +1,6 @@
+ /**
+ * author: joana.niermann@cern.ch
+ **/
 #include <limits>
 #include <type_traits>
 

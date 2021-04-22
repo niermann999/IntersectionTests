@@ -1,3 +1,6 @@
+ /**
+ * author: joana.niermann@cern.ch
+ **/
 namespace vec_intr {
 
 

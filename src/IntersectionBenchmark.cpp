@@ -1,5 +1,5 @@
  /**
- * author: asalzburger@gmail.com
+ * author: joana.niermann@cern.ch
  **/
 #include <types.hpp>
 #include <intersectors.hpp>
