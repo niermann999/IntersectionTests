@@ -1,0 +1,265 @@
+//==========
+// avx
+//==========
+
+float-----------------------
+compile cmmd:
+cmake -DCMAKE_PREFIX_PATH="/home/jniermann/Projects/externals/boost_1_75_0" -DCMAKE_INSTALL_PREFIX="/home/jniermann/Projects/experimental/IntersectionTests/" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_CXX_FLAGS="-O2 -ftree-vectorize -march=native -msse -msse2 -msse3 -msse4 -mmmx -m3dnow -mavx -mavx2" ..
+
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           32237960 ns     32144627 ns           21
+VertSetup/intersectEigen4D_wres      71867697 ns     71616342 ns            8
+VertSetup/intersectVcVert            32162598 ns     32079950 ns           22
+VertSetup/intersectVcVert_wres       70340812 ns     70088356 ns            8
+HybridSetup/intersectVcHybrid        15445222 ns     15432753 ns           44
+HybridSetup/intersectVcHybrid_wres   24576692 ns     24506502 ns           29
+HorizSetup/intersectVcHoriz           5193233 ns      5188863 ns          123
+HorizSetup/intersectVcHoriz_wres     14255157 ns     14234261 ns           42
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           32043897 ns     31962164 ns           21
+VertSetup/intersectEigen4D_wres      71001802 ns     70757085 ns            8
+VertSetup/intersectVcVert            31965397 ns     31887514 ns           22
+VertSetup/intersectVcVert_wres       71873026 ns     71617813 ns            8
+HybridSetup/intersectVcHybrid        15902372 ns     15885200 ns           43
+HybridSetup/intersectVcHybrid_wres   25225328 ns     25147536 ns           27
+HorizSetup/intersectVcHoriz           5926779 ns      5922003 ns          107
+HorizSetup/intersectVcHoriz_wres     14116357 ns     14095685 ns           42
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           32142880 ns     32063727 ns           22
+VertSetup/intersectEigen4D_wres      70947226 ns     70706962 ns            8
+VertSetup/intersectVcVert            32057835 ns     31972664 ns           22
+VertSetup/intersectVcVert_wres       73520239 ns     73269576 ns            7
+HybridSetup/intersectVcHybrid        15376744 ns     15364297 ns           44
+HybridSetup/intersectVcHybrid_wres   24788329 ns     24720505 ns           28
+HorizSetup/intersectVcHoriz           5214017 ns      5209466 ns          119
+HorizSetup/intersectVcHoriz_wres     14608362 ns     14588706 ns           42
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           32181397 ns     32088744 ns           21
+VertSetup/intersectEigen4D_wres      73113925 ns     72869366 ns            8
+VertSetup/intersectVcVert            32975324 ns     32881867 ns           22
+VertSetup/intersectVcVert_wres       71761523 ns     71500733 ns            8
+HybridSetup/intersectVcHybrid        15507019 ns     15485225 ns           43
+HybridSetup/intersectVcHybrid_wres   26479470 ns     26391201 ns           27
+HorizSetup/intersectVcHoriz           5192821 ns      5188561 ns          116
+HorizSetup/intersectVcHoriz_wres     13959865 ns     13944843 ns           45
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           31910747 ns     31824820 ns           21
+VertSetup/intersectEigen4D_wres      71646394 ns     71409355 ns            8
+VertSetup/intersectVcVert            31989659 ns     31901214 ns           22
+VertSetup/intersectVcVert_wres       71668615 ns     71402123 ns            8
+HybridSetup/intersectVcHybrid        15879769 ns     15856402 ns           44
+HybridSetup/intersectVcHybrid_wres   25243096 ns     25169222 ns           28
+HorizSetup/intersectVcHoriz           5490659 ns      5485846 ns          120
+HorizSetup/intersectVcHoriz_wres     14919898 ns     14896742 ns           42
+
+
+double-----------------------
+
+compile cmd:
+cmake -DCMAKE_PREFIX_PATH="/home/jniermann/Projects/externals/boost_1_75_0" -DCMAKE_INSTALL_PREFIX="/home/jniermann/Projects/experimental/IntersectionTests/" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_CXX_FLAGS="-O3 -march=native -msse -msse2 -msse3 -msse4 -mmmx -m3dnow -mavx -mavx2 -DPRECISION_DOUBLE" ..
+
+-----------------------------------------------------------------------------Benchmark                                   Time             CPU   Iterations-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           33051996 ns     32972929 ns           20
+VertSetup/intersectEigen4D_wres     109619747 ns    109284178 ns            6
+VertSetup/intersectVcVert            33048525 ns     32963003 ns           21
+VertSetup/intersectVcVert_wres      112766730 ns    112474509 ns            6
+HybridSetup/intersectVcHybrid        28716143 ns     28603432 ns           24
+HybridSetup/intersectVcHybrid_wres   54238083 ns     54007697 ns           12
+HorizSetup/intersectVcHoriz          16675729 ns     16629132 ns           54
+HorizSetup/intersectVcHoriz_wres     52320159 ns     52091715 ns           13
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           33634461 ns     33545838 ns           21
+VertSetup/intersectEigen4D_wres     109702095 ns    109347447 ns            6
+VertSetup/intersectVcVert            33267603 ns     33181795 ns           21
+VertSetup/intersectVcVert_wres      112547624 ns    112251848 ns            6
+HybridSetup/intersectVcHybrid        29401715 ns     29325658 ns           23
+HybridSetup/intersectVcHybrid_wres   54397202 ns     54147861 ns           12
+HorizSetup/intersectVcHoriz          17856862 ns     17804093 ns           48
+HorizSetup/intersectVcHoriz_wres     58465719 ns     58210821 ns           12
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           34121901 ns     34034510 ns           21
+VertSetup/intersectEigen4D_wres     108895123 ns    108575898 ns            6
+VertSetup/intersectVcVert            33003704 ns     32918671 ns           21
+VertSetup/intersectVcVert_wres      113134548 ns    112835559 ns            6
+HybridSetup/intersectVcHybrid        28966215 ns     28896041 ns           24
+HybridSetup/intersectVcHybrid_wres   54835160 ns     54594151 ns           12
+HorizSetup/intersectVcHoriz          15742431 ns     15697083 ns           55
+HorizSetup/intersectVcHoriz_wres     49652530 ns     49445189 ns           13
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           32937210 ns     32850252 ns           20
+VertSetup/intersectEigen4D_wres     111208113 ns    110837586 ns            6
+VertSetup/intersectVcVert            33391000 ns     33295658 ns           21
+VertSetup/intersectVcVert_wres      113422116 ns    113123317 ns            6
+HybridSetup/intersectVcHybrid        29487443 ns     29410964 ns           24
+HybridSetup/intersectVcHybrid_wres   54046445 ns     53829815 ns           12
+HorizSetup/intersectVcHoriz          17077110 ns     17024091 ns           53
+HorizSetup/intersectVcHoriz_wres     50930194 ns     50717470 ns           14
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           32835599 ns     32759298 ns           21
+VertSetup/intersectEigen4D_wres     107428122 ns    107118844 ns            6
+VertSetup/intersectVcVert            33112831 ns     33026310 ns           21
+VertSetup/intersectVcVert_wres      114500837 ns    114210756 ns            6
+HybridSetup/intersectVcHybrid        28604524 ns     28538341 ns           24
+HybridSetup/intersectVcHybrid_wres   53834142 ns     53614964 ns           12
+HorizSetup/intersectVcHoriz          16510441 ns     16467343 ns           53
+HorizSetup/intersectVcHoriz_wres     49949641 ns     49740042 ns           13
+
+
+//==========
+// sse
+//==========
+
+float-----------------------
+
+compile cmd:
+cmake -DCMAKE_PREFIX_PATH="/home/jniermann/Projects/externals/boost_1_75_0" -DCMAKE_INSTALL_PREFIX="/home/jniermann/Projects/experimental/IntersectionTests/" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_CXX_FLAGS="-O2 -ftree-vectorize  -mmmx -m3dnow -msse -msse2" ..
+
+
+-----------------------------------------------------------------------------Benchmark                                   Time             CPU   Iterations-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           20415408 ns     20375738 ns           34
+VertSetup/intersectEigen4D_wres      55363361 ns     55153452 ns           12
+VertSetup/intersectVcVert            20751660 ns     20717632 ns           34
+VertSetup/intersectVcVert_wres       57622012 ns     57429796 ns           12
+HybridSetup/intersectVcHybrid        25408929 ns     25382277 ns           28
+HybridSetup/intersectVcHybrid_wres   37449192 ns     37364582 ns           19
+HorizSetup/intersectVcHoriz          26518891 ns     26497141 ns           26
+HorizSetup/intersectVcHoriz_wres     66159609 ns     66075773 ns           10
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           20626033 ns     20585405 ns           34
+VertSetup/intersectEigen4D_wres      55758917 ns     55493388 ns           12
+VertSetup/intersectVcVert            20520208 ns     20484527 ns           34
+VertSetup/intersectVcVert_wres       57032134 ns     56799718 ns           11
+HybridSetup/intersectVcHybrid        25509438 ns     25479317 ns           28
+HybridSetup/intersectVcHybrid_wres   37569517 ns     37441767 ns           19
+HorizSetup/intersectVcHoriz          26531842 ns     26509766 ns           27
+HorizSetup/intersectVcHoriz_wres     65955922 ns     65872352 ns           10
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           20480901 ns     20450274 ns           34
+VertSetup/intersectEigen4D_wres      55260490 ns     55063977 ns           12
+VertSetup/intersectVcVert            21012484 ns     20982777 ns           34
+VertSetup/intersectVcVert_wres       57414799 ns     57229211 ns           12
+HybridSetup/intersectVcHybrid        25102828 ns     25082341 ns           27
+HybridSetup/intersectVcHybrid_wres   37242465 ns     37155272 ns           19
+HorizSetup/intersectVcHoriz          26519475 ns     26495131 ns           27
+HorizSetup/intersectVcHoriz_wres     65846689 ns     65762003 ns           10
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           20067827 ns     20026565 ns           33
+VertSetup/intersectEigen4D_wres      56326165 ns     56096547 ns           12
+VertSetup/intersectVcVert            20518146 ns     20491397 ns           36
+VertSetup/intersectVcVert_wres       57200313 ns     57006666 ns           12
+HybridSetup/intersectVcHybrid        25168238 ns     25147336 ns           28
+HybridSetup/intersectVcHybrid_wres   37852289 ns     37761594 ns           19
+HorizSetup/intersectVcHoriz          26938081 ns     26908963 ns           26
+HorizSetup/intersectVcHoriz_wres     65527406 ns     65446338 ns           10
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           20029969 ns     20006742 ns           33
+VertSetup/intersectEigen4D_wres      56525718 ns     56281669 ns           12
+VertSetup/intersectVcVert            20431397 ns     20402052 ns           35
+VertSetup/intersectVcVert_wres       56663370 ns     56485023 ns           12
+HybridSetup/intersectVcHybrid        25227680 ns     25199530 ns           28
+HybridSetup/intersectVcHybrid_wres   38136742 ns     38031143 ns           19
+HorizSetup/intersectVcHoriz          27242888 ns     27205665 ns           26
+HorizSetup/intersectVcHoriz_wres     66186743 ns     66091799 ns           10
+
+
+double-----------------------
+
+compile cmd:
+cmake -DCMAKE_PREFIX_PATH="/home/jniermann/Projects/externals/boost_1_75_0" -DCMAKE_INSTALL_PREFIX="/home/jniermann/Projects/experimental/IntersectionTests/" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_CXX_FLAGS="-O2 -ftree-vectorize  -mmmx -m3dnow -msse -msse2 -DPRECISION_DOUBLE" ..
+
+
+-----------------------------------------------------------------------------Benchmark                                   Time             CPU   Iterations-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           35396002 ns     35306131 ns           19
+VertSetup/intersectEigen4D_wres     101501327 ns    101169867 ns            7
+VertSetup/intersectVcVert            36060633 ns     35976364 ns           20
+VertSetup/intersectVcVert_wres      112194078 ns    111832812 ns            6
+HybridSetup/intersectVcHybrid        21844814 ns     21766576 ns           26
+HybridSetup/intersectVcHybrid_wres   64220898 ns     63976907 ns           10
+HorizSetup/intersectVcHoriz          67869718 ns     67751231 ns           10
+HorizSetup/intersectVcHoriz_wres    163390613 ns    163066092 ns            4
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           34990205 ns     34893388 ns           19
+VertSetup/intersectEigen4D_wres     100312483 ns     99954882 ns            7
+VertSetup/intersectVcVert            36130965 ns     36033036 ns           20
+VertSetup/intersectVcVert_wres      109222298 ns    108907342 ns            6
+HybridSetup/intersectVcHybrid        22563314 ns     22485068 ns           27
+HybridSetup/intersectVcHybrid_wres   62477801 ns     62235864 ns           10
+HorizSetup/intersectVcHoriz          67122891 ns     66998889 ns           10
+HorizSetup/intersectVcHoriz_wres    162864986 ns    162547450 ns            4
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           35368830 ns     35287712 ns           19
+VertSetup/intersectEigen4D_wres     101423812 ns    101078574 ns            7
+VertSetup/intersectVcVert            36074310 ns     35986965 ns           20
+VertSetup/intersectVcVert_wres      110068985 ns    109749042 ns            6
+HybridSetup/intersectVcHybrid        22367266 ns     22274261 ns           27
+HybridSetup/intersectVcHybrid_wres   63846869 ns     63616554 ns           10
+HorizSetup/intersectVcHoriz          67520145 ns     67408718 ns           10
+HorizSetup/intersectVcHoriz_wres    163501389 ns    163187087 ns            4
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           35560673 ns     35468820 ns           19
+VertSetup/intersectEigen4D_wres     102611769 ns    102236981 ns            7
+VertSetup/intersectVcVert            35551375 ns     35465094 ns           20
+VertSetup/intersectVcVert_wres      109620536 ns    109284988 ns            6
+HybridSetup/intersectVcHybrid        24294540 ns     24219599 ns           26
+HybridSetup/intersectVcHybrid_wres   63282712 ns     63039173 ns           10
+HorizSetup/intersectVcHoriz          67844047 ns     67716480 ns           10
+HorizSetup/intersectVcHoriz_wres    163345023 ns    163021622 ns            4
+[jniermann@linux build]$ ./src/BenchmarkIntersectionBench 2> /dev/null
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+VertSetup/intersectEigen4D           35155383 ns     35057122 ns           20
+VertSetup/intersectEigen4D_wres     101903942 ns    101573276 ns            7
+VertSetup/intersectVcVert            36646007 ns     36552908 ns           19
+VertSetup/intersectVcVert_wres      110112502 ns    109784184 ns            6
+HybridSetup/intersectVcHybrid        23320765 ns     23245543 ns           26
+HybridSetup/intersectVcHybrid_wres   63724982 ns     63477221 ns           10
+HorizSetup/intersectVcHoriz          67151971 ns     67035378 ns           10
+HorizSetup/intersectVcHoriz_wres    163527809 ns    163210905 ns            4

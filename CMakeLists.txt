@@ -16,12 +16,13 @@ set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
 add_compile_options(
        -O3 --std=c++17
        #-L/usr/lib64/ -l:libVc.a
-       -Wall -Wextra -Wshadow -fstrict-aliasing -Wno-deprecated-declarations -Wstrict-aliasing
+       #-Wall -Wextra -Wshadow -fstrict-aliasing -Wno-deprecated-declarations -Wstrict-aliasing
 )
 
 # Extra vectorization options
 add_compile_options(
-       -march=native -msse -msse2 -msse3 -msse4 -mavx -mavx2
+       #-march=native -msse -msse2 -msse3 -msse4 -mavx -mavx2
+       #-msse -msse2
 )
 
 add_subdirectory(src)
