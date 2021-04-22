@@ -501,7 +501,8 @@ BOOST_AUTO_TEST_CASE(IntersectVcVert_res) {intersectVcVert_res<nSurfaces>(ray, p
 
 
 BOOST_AUTO_TEST_CASE(IntersectVcHybrid)     {intersectVcHybrid<nSurfaces>(ray_struct, 
-                                                                          planes_struct);}
+                                                                          planes_struct);} 
+                                                                          
 BOOST_AUTO_TEST_CASE(IntersectVcHybrid_res) {intersectVcHybrid_res<nSurfaces>(ray_struct, 
                                                                               planes_struct);}
 
