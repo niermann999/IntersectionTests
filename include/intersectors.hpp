@@ -58,18 +58,6 @@ auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
                          plane_data<Vector3<scalar_v>>& planes);
 
 
-// This is terrible!
-/*template<typename vector_v, typename vector_s> // Set type traits according to assumptions that are made
-void vc_intersect_vert(//ray_data<vector_s> &ray,
-                       ray_data<Vector4_s> &ray,
-                       //mem_t<kDIM> &planePoints) {    // needs explicit copy, because fromRawData() does not work (uses 'offsetof' on private member)
-                       //Vc::span<vector_t, kDIM> &planePoints) { // terribly slow somehow
-                       plane_data<aligned::vector<vector_s>> &planes,
-                       aligned::vector<intersection<std::vector<typename vector_v::value_type>, aligned::vector<vector_v>>> &results,
-                       size_t stride = vector_v::Size);
-*/
-
-
 template<typename scalar_v>
 void vc_intersect_hybrid(Vector3<scalar_v> &rayVector,
                          Vector3<scalar_v> &rayPoint,

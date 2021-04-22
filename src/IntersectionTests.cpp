@@ -4,9 +4,6 @@
 #include <types.hpp>
 #include <intersectors.hpp>
 
-#include <array>
-#include <ctime>            // std::time
-#include <chrono>
 #include <iostream>
 #include <limits>
 
@@ -14,31 +11,12 @@
 #include <boost/test/tools/output_test_stream.hpp>
 #include <boost/test/unit_test.hpp>
 
-#include <boost/random/linear_congruential.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <boost/random/variate_generator.hpp>
-#include <boost/generator_iterator.hpp>
-
-#include <benchmark/benchmark.h>
-
 namespace vec_intr {
 
 namespace test {
 
-// This is a typedef for a random number generator.
-// Try boost::mt19937 or boost::ecuyer1988 instead of boost::minstd_rand
-using generator_t = boost::minstd_rand;
-// Define a uniform random number distribution which produces "double"
-// values between 0 and 1 (0 inclusive, 1 exclusive).
-using rand_t = boost::variate_generator<generator_t&, boost::uniform_real<Scalar> >;
-
-#ifdef DEBUG
-constexpr size_t tests = 100;
+constexpr size_t nTests = 100;
 constexpr size_t nSurfaces = 8;
-#else
-constexpr size_t tests = 100;
-constexpr size_t nSurfaces = 128000;
-#endif
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types
 static_assert(data_trait<Vector4_s>::is_vec_layout, "Input type has non-compatible memory layout for vectorization");
@@ -49,20 +27,10 @@ using vector_s = data_trait<Vector4_s>::type;
 using vector_v = data_trait<VectorV_s>::type;
 //using transf_s = data_trait<Transform4>::type;
 
-// Measure execution time
-using clock = std::chrono::high_resolution_clock;
-using std::chrono::duration_cast;
-using std::chrono::duration;
-using unit_ms = std::chrono::milliseconds;
-
 //----------------------------------------------------Fill Data Types
 
-  //using namespace vec_test;
+// Produce test data
 struct data_setup {
-
-  // Make sure the compiler does not optimize the computations away
-  Scalar check_sum;
-
   Vector3<Scalar_v> ray_dir_hor, ray_point_hor;
 
   aligned::vector<vector_s>         pl_normals, pl_points;
@@ -79,9 +47,6 @@ struct data_setup {
   plane_data<aligned::vector<vector_v>> planes_hor;
 
   data_setup () {
-    // Produce test data (either predefined or random)
-    #ifdef DEBUG
-
     // Ray to be intersected with different plains
     Scalar data[4] = {0.0, -1.0, -1.0, 0.0};//, 0.0, 0.0, 0.0, 0.0, 0.0};
     Vector4_s ray_dir = Vector4_s(data);
@@ -90,26 +55,11 @@ struct data_setup {
     Vector4_s ray_point = Vector4_s(data);
     data[2] = 1.0;
 
-    // Depends on scalar precision and vec standard (avx...)
-    /*Scalar r_data[8] = {0.0, -1.0, -1.0, 0.0, 0.0, -1.0, -1.0, 0.0};
-    // Same starting position
-    VectorV_s ray_dir = VectorV_s(r_data);
-    r_data[2] = 10.0;
-    r_data[1] = 0.0;
-    r_data[6] = 10.0;
-    r_data[5] = 0.0;
-    data[2] = 10.0;
-    data[1] = 0.0;
-    VectorV_s rp = VectorV_s(r_data);*/
-    // Same starting position
-
     // For the moment same normal vectors
     vector_s pl_normal {.obj = vector_s::obj_type(data)};
 
     // plane normals and points
     data[2] = 5.0;
-    aligned::vector<vector_s> pl_points;
-    aligned::vector<vector_s> pl_normals;
     pl_points.reserve(nSurfaces);
     pl_normals.reserve(nSurfaces);
     for (size_t i = 0; i < nSurfaces; i++) {
@@ -119,7 +69,6 @@ struct data_setup {
     }
 
     // AoS data
-
     Vector3<Scalar> pp0 {.x=0.0, .y=0.0, .z=5.0};
     Vector3<Scalar> pp1 {.x=0.0, .y=0.0, .z=6.0};
     Vector3<Scalar> pp2 {.x=0.0, .y=0.0, .z=7.0};
@@ -128,7 +77,6 @@ struct data_setup {
     Vector3<Scalar> pp5 {.x=0.0, .y=0.0, .z=10.0};
     Vector3<Scalar> pp6 {.x=0.0, .y=0.0, .z=11.0};
     Vector3<Scalar> pp7 {.x=0.0, .y=0.0, .z=12.0};
-    Vector3<Scalar> pp8 {.x=0.0, .y=0.0, .z=13.0};
 
     Vector3<Scalar> plain_n {.x=0.0, .y=0.0, .z=1.0};
 
@@ -153,66 +101,6 @@ struct data_setup {
         pl_normals_hor.push_back(pl_normals_i);
       }
     }
-    
-
-    for (const auto& vec : pl_points_hor) {
-      std::cout << vec.obj.transpose() <<" \t";
-    }
-    std::cout << std::endl;
-    for (const auto& vec : pl_normals_hor) {
-      std::cout << vec.obj.transpose() << " \t";
-    }
-    std::cout << std::endl;
-    
-    #else
-
-    //-----------------------------------------------Random data
-    
-    generator_t generator(42);
-
-    boost::uniform_real<Scalar> uni_dist(0,1000);
-    rand_t uni(generator, uni_dist);
-
-    // Same starting position
-    Vector4_s ray_dir = Vector4_s::Random();
-    Vector4_s ray_point = Vector4_s::Random();
-
-    pl_normals.reserve(nSurfaces);
-    pl_points.reserve(nSurfaces);
-    for (size_t i = 0; i < nSurfaces; i++) {
-      pl_normals.push_back({.obj = vector_s::obj_type::Random()});
-      pl_points.push_back({.obj = vector_s::obj_type::Random()});
-    }
-
-    // AoS data
-    pl_normals_struct.reserve(nSurfaces);
-    pl_points_struct.reserve(nSurfaces);
-
-    for (size_t i = 0; i < nSurfaces; i++) {
-      pl_normals_struct.push_back({.x=uni(), .y=uni(), .z=uni()});
-      pl_points_struct.push_back({.x=uni(), .y=uni(), .z=uni()});
-    }
-
-    // Horizontal data (interleaved)
-    ray_dir_hor  = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
-    ray_point_hor = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
-
-    // dimension * number of matrices needed
-    for (size_t offset = 0; offset < 3 * nSurfaces/Scalar_v::Size; offset++) {
-      pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()});
-      pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
-    }
-    
-    /*for (const auto& vec : pl_points_hor) {
-      std::cout << vec.obj.transpose() <<" \t";
-    }
-    std::cout << std::endl;
-    for (const auto& vec : pl_normals_hor) {
-      std::cout << vec.obj.transpose() << " \t";
-    }
-    std::cout << std::endl;*/
-
-    #endif
 
     // vertical data containers
     ray    = {.direction = ray_dir, 
@@ -222,17 +110,19 @@ struct data_setup {
 
     // AoS container
     ray_struct    = {.direction = ray_dir_hor, 
-                     .point     = ray_point_hor}; 
+                    .point     = ray_point_hor}; 
     planes_struct = {.normals = pl_normals_struct, 
-                     .points  = pl_points_struct};
+                    .points  = pl_points_struct};
 
     // horizontal ray container
     ray_hor    = {.direction = ray_dir_hor,    
                   .point     = ray_point_hor};
     planes_hor = {.normals = pl_normals_hor, 
                   .points  = pl_points_hor};
+    
   }
 };
+
 //----------------------------------------------------Run Tests
 
 //----------------------------------------------------//
@@ -240,15 +130,15 @@ struct data_setup {
 //----------------------------------------------------//
 template <unsigned int kPlanes> void intersectEigen4D(ray_data<Vector4_s>& ray,
                                                       plane_data<aligned::vector<vector_s>>& planes) {
+  std::cout << "Running Eigen 4D test ...";
   Scalar check_sum = 0.0;
 
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  for (size_t nt = 0; nt < nTests; ++nt) {
     for (size_t i = 0; i < nSurfaces; i++) {
       auto intersection = eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj);
       check_sum += intersection.dist;
       #ifdef DEBUG
-      if (nt % (tests-1)/2 == 0) {
+      if (nt % (nTests-1)/2 == 0) {
         std::cout << "\n" << intersection.dist << std::endl;
         for (int i = 0; i < 4; i++) {
           std::cout << intersection.path[i] << ", ";
@@ -257,25 +147,24 @@ template <unsigned int kPlanes> void intersectEigen4D(ray_data<Vector4_s>& ray,
       #endif
     }
   }
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Eigen 4D: " << duration.count() << "ms\n";
-  std::cout << check_sum << std::endl;
+  // TODO watch the floating point comparision!!
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\t\t\t\t\tdone" << std::endl;
 }
 
 template <unsigned int kPlanes> void intersectEigen4D_res(ray_data<Vector4_s>& ray,
                                                           plane_data<aligned::vector<vector_s>>& planes) {
+  std::cout << "Running Eigen with vector container 4D test ...";
   Scalar check_sum = 0.0;
 
   aligned::vector<intersection<Scalar, Vector4_s>> results;
   results.reserve(planes.points.size());
 
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  for (size_t nt = 0; nt < nTests; ++nt) {
       eig_intersect_4D<vector_s>(ray, planes, results);
       for (auto &intersection : results) check_sum += intersection.dist;
       #ifdef DEBUG
-      if (nt % (tests-1)/2 == 0) {
+      if (nt % (nTests-1)/2 == 0) {
         for (auto &intersection : results) {
           std::cout << "\n" << intersection.dist << std::endl;
           for (int i = 0; i < 4; i++) {
@@ -286,23 +175,28 @@ template <unsigned int kPlanes> void intersectEigen4D_res(ray_data<Vector4_s>& r
       #endif
       results.clear();
   }
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Eigen 4D (w vec): " << duration.count() << "ms\n";
-  std::cout << check_sum << std::endl;
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\t\t\tdone" << std::endl;
 }
 
+//----------------------------------------------------//
+// Vc                                                 //
+//----------------------------------------------------//
+
+//
+// Use simdArray on unchanged data set
+//
 template <unsigned int kPlanes> void intersectVcVert(ray_data<Vector4_s>& ray,
                                                       plane_data<aligned::vector<vector_s>>& planes) {
+  std::cout << "Running vert. Vectoriztion test ...";
   Scalar check_sum = 0.0;
   
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  for (size_t nt = 0; nt < nTests; ++nt) {
     for (size_t i = 0; i < nSurfaces; i++) {
       auto intersection = vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj);
       check_sum += intersection.dist;
       #ifdef DEBUG
-      if (nt % (tests-1)/2 == 0) {
+      if (nt % (nTests-1)/2 == 0) {
         std::cout << "\n" << intersection.dist << std::endl;
         for (int i = 0; i < 4; i++) {
           std::cout << intersection.path[i] << ", ";
@@ -311,25 +205,26 @@ template <unsigned int kPlanes> void intersectVcVert(ray_data<Vector4_s>& ray,
       #endif
     }
   }
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Vc vert: " << duration.count() << "ms\n";
-  std::cout << check_sum << std::endl;
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\t\t\t\tdone" << std::endl;
 }
 
+//
+// Use simdArray on unchanged data set and save the results in a container
+//
 template <unsigned int kPlanes> void intersectVcVert_res(ray_data<Vector4_s>& ray,
                                                         plane_data<aligned::vector<vector_s>>& planes) {
+  std::cout << "Running vert. Vectoriztion with vector container test ...";
   Scalar check_sum = 0.0;
   
   aligned::vector<intersection<Scalar, Vc::SimdArray<Scalar, 4>>> results;
   results.reserve(planes.points.size());
 
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  for (size_t nt = 0; nt < nTests; ++nt) {
     vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
     for (auto &intersection : results) check_sum += intersection.dist;
     #ifdef DEBUG
-    if (nt % (tests-1)/2 == 0) {
+    if (nt % (nTests-1)/2 == 0) {
       for (auto &intersection : results) {
         std::cout << "\n" << intersection.dist << std::endl;
         for (int i = 0; i < 4; i++) {
@@ -340,20 +235,20 @@ template <unsigned int kPlanes> void intersectVcVert_res(ray_data<Vector4_s>& ra
     #endif
     results.clear();
   }
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Vc vert (w vec): " << duration.count() << "ms\n";
-  std::cout << check_sum << std::endl;
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\tdone" << std::endl;
 }
 
-
+//
+// Use a gather on a structured data set then vectorize horizontaly
+//
 template <unsigned int kPlanes> void intersectVcHybrid(ray_data<Vector3<Scalar_v>>& ray,
                                                        plane_data<aligned::vector<Vector3<Scalar>>>& planes) {
+  std::cout << "Running hybrid Vectoriztion test ...";
   Scalar   check_sum   = 0.0;
   Scalar_v check_sum_v = 0.0;
 
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  for (size_t nt = 0; nt < nTests; ++nt) {
     for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
       Scalar_v pns_x = planes.normals[i][&Vector3<Scalar>::x];
       Scalar_v pns_y = planes.normals[i][&Vector3<Scalar>::y];
@@ -369,7 +264,7 @@ template <unsigned int kPlanes> void intersectVcHybrid(ray_data<Vector3<Scalar_v
       auto intersection = vc_intersect_hybrid<Scalar_v>(ray, planes_strcts);
       check_sum_v += intersection.dist;
       #ifdef DEBUG
-      if (nt % (tests-1)/2 == 0) {
+      if (nt % (nTests-1)/2 == 0) {
         std::cout << intersection.dist << std::endl;
         std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
       }
@@ -377,26 +272,28 @@ template <unsigned int kPlanes> void intersectVcHybrid(ray_data<Vector3<Scalar_v
     }
   }
   check_sum = check_sum_v.sum();
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Vc hybrd: " << duration.count() << "ms\n";
-  std::cout << check_sum << std::endl;
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\t\t\t\tdone" << std::endl;
 }
 
+//
+// Use a gather on a structured data set then vectorize horizontaly 
+// and save the results in a container
+//
 template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<Vector3<Scalar_v>>& ray,
                                                            plane_data<aligned::vector<Vector3<Scalar>>>& planes) {
+  std::cout << "Running hybrid Vectoriztion with vector container test ...";
   Scalar   check_sum   = 0.0;
   Scalar_v check_sum_v = 0.0;
 
   aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
   results.reserve(planes.normals.size());
   
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  for (size_t nt = 0; nt < nTests; ++nt) {
       vc_intersect_hybrid<Scalar_v>(ray, planes, results);
       for (auto &intersection : results) check_sum_v += intersection.dist;
       #ifdef DEBUG
-      if (nt % (tests-1)/2 == 0) {
+      if (nt % (nTests-1)/2 == 0) {
         for (auto &intersection : results) {
           std::cout << intersection.dist << std::endl;
           std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
@@ -406,15 +303,16 @@ template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<Vector3<Scal
       results.clear();
   }
   check_sum = check_sum_v.sum();
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Vc hybrd (w vec): " << duration.count() << "ms\n";
-  std::cout << check_sum << std::endl;
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\tdone" << std::endl;
 }
 
-
+//
+// Use a horizontal vectorization and data set
+//
 template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>>& ray,
                                                       plane_data<aligned::vector<vector_v>>& planes) {
+  std::cout << "Running horiz. Vectoriztion test ...";
   Scalar   check_sum   = 0.0;
   Scalar_v check_sum_v = 0.0;
 
@@ -423,11 +321,11 @@ template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>
   // Access to raw data that will be loaded as scalar_v
   size_t n_bytes = planes.points.size() * (planes.points.front().n_elemts() + padding);
   size_t offset  = Scalar_v::Size + padding;
-  if (n_bytes % (3*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
   size_t n_vec = n_bytes / (3*offset);
 
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  BOOST_REQUIRE(n_bytes % (3*offset) == 0);
+
+  for (size_t nt = 0; nt < nTests; ++nt) {
       auto pl_normals_ptr = const_cast<const Scalar*>(planes.normals.front().data());
       auto pl_points_ptr  = const_cast<const Scalar*>(planes.points.front().data());
 
@@ -439,7 +337,7 @@ template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>
         pl_points_ptr  += 3 * offset;
 
         #ifdef DEBUG 
-        if (nt % (tests-1)/2 == 0) {
+        if (nt % (nTests-1)/2 == 0) {
           std::cout << intersection.dist << std::endl;
           std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
                     << intersection.path.z << std::endl;
@@ -448,14 +346,16 @@ template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>
       }
   }
   check_sum = check_sum_v.sum();
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Vc horizontal: " << duration.count() << "ms" << std::endl;
-  std::cout << check_sum << std::endl;
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\t\t\t\tdone" << std::endl;
 }
 
+//
+// Use a horizontal vectorization and data set, save the results in a container
+//
 template <unsigned int kPlanes> void intersectVcHoriz_res(ray_data<Vector3<Scalar_v>>& ray,
                                                           plane_data<aligned::vector<vector_v>>& planes) {
+  std::cout << "Running horiz. Vectoriztion with vector container test ...";
   Scalar   check_sum   = 0.0;
   Scalar_v check_sum_v = 0.0;
 
@@ -464,12 +364,11 @@ template <unsigned int kPlanes> void intersectVcHoriz_res(ray_data<Vector3<Scala
   aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
   results.reserve(planes.points.size() * planes.points.front().n_elemts()/Scalar_v::Size);
 
-  auto t1 = clock::now();
-  for (size_t nt = 0; nt < tests; ++nt) {
+  for (size_t nt = 0; nt < nTests; ++nt) {
       vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray, planes, results, padding);
       for (auto &intersection : results) check_sum_v += intersection.dist;
       #ifdef DEBUG 
-      if (nt % (tests-1)/2 == 0) {
+      if (nt % (nTests-1)/2 == 0) {
         for (auto &intersection : results) {
           std::cout << intersection.dist << std::endl;
           std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
@@ -480,14 +379,12 @@ template <unsigned int kPlanes> void intersectVcHoriz_res(ray_data<Vector3<Scala
       results.clear();
   }
   check_sum = check_sum_v.sum();
-  auto t2 = clock::now();
-  auto duration = duration_cast<unit_ms>(t2 - t1);
-  std::cout << "Vc horizontal (w vec): " << duration.count() << "ms" << std::endl;
-  std::cout << check_sum << std::endl;
+  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  std::cout << "\tdone" << std::endl;
 }
 
 
-//----------------------------------------------------Run Boost Tests
+//----------------------------------------------------Run Boost nTests
 
 BOOST_FIXTURE_TEST_SUITE(VectIntersect, data_setup)
 
@@ -511,7 +408,6 @@ BOOST_AUTO_TEST_CASE(IntersectVcHoriz)    {intersectVcHoriz<nSurfaces>(ray_hor,
                                                                        planes_hor);}
 BOOST_AUTO_TEST_CASE(IntersectVcHorizres) {intersectVcHoriz_res<nSurfaces>(ray_hor, 
                                                                            planes_hor);}
-
 
 BOOST_AUTO_TEST_SUITE_END()
 

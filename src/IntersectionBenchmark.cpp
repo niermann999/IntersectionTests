@@ -4,13 +4,11 @@
 #include <types.hpp>
 #include <intersectors.hpp>
 
-#include <array>
-#include <ctime>            // std::time
 #ifdef DEBUG
 #include <chrono>
+#include <ctime>
 #endif
 #include <iostream>
-#include <limits>
 
 #include <boost/random/linear_congruential.hpp>
 #include <boost/random/uniform_real.hpp>
@@ -23,7 +21,7 @@ namespace vec_intr {
 
 namespace g_bench {
 
-constexpr size_t tests = 100;
+constexpr size_t nTests = 100;
 constexpr size_t nSurfaces = 128000;
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types
@@ -215,7 +213,7 @@ BENCHMARK_F(VertSetup, intersectEigen4D)(benchmark::State& state) {
   for (auto _: state) {
     check_sum = 0;
 
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
       for (size_t i = 0; i < nSurfaces; i++) {
         auto intersection = eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj);
         check_sum += intersection.dist;
@@ -234,7 +232,7 @@ BENCHMARK_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
     aligned::vector<intersection<Scalar, Vector4_s>> results;
     results.reserve(planes.points.size());
 
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
         eig_intersect_4D<vector_s>(ray, planes, results);
         for (auto &intersection : results) check_sum += intersection.dist;
         results.clear();
@@ -256,7 +254,7 @@ BENCHMARK_F(VertSetup, intersectVcVert)(benchmark::State& state) {
   for (auto _: state) {
     check_sum = 0.0;
     
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
       for (size_t i = 0; i < nSurfaces; i++) {
         auto intersection = vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj);
         check_sum += intersection.dist;
@@ -278,7 +276,7 @@ BENCHMARK_F(VertSetup, intersectVcVert_wres)(benchmark::State& state) {
     aligned::vector<intersection<Scalar, Vc::SimdArray<Scalar, 4>>> results;
     results.reserve(planes.points.size());
 
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
       vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
       for (auto &intersection : results) check_sum += intersection.dist;
       results.clear();
@@ -297,7 +295,7 @@ BENCHMARK_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
     check_sum   = 0.0;
     check_sum_v = 0.0;
 
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
       for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes_struct.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
         Scalar_v pns_x = planes_struct.normals[i][&Vector3<Scalar>::x];
         Scalar_v pns_y = planes_struct.normals[i][&Vector3<Scalar>::y];
@@ -333,7 +331,7 @@ BENCHMARK_F(HybridSetup, intersectVcHybrid_wres)(benchmark::State& state) {
     aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
     results.reserve(planes_struct.normals.size());
     
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
         vc_intersect_hybrid<Scalar_v>(ray_struct, planes_struct, results);
         for (auto &intersection : results) check_sum_v += intersection.dist;
         results.clear();
@@ -365,7 +363,7 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state) {
     auto t1 = clock::now();
     #endif
 
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
         auto pl_normals_ptr = const_cast<const Scalar*>(planes_hor.normals.front().data());
         auto pl_points_ptr  = const_cast<const Scalar*>(planes_hor.points.front().data());
 
@@ -403,7 +401,7 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz_wres)(benchmark::State& state) {
     aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
     results.reserve(planes_hor.points.size() * planes_hor.points.front().n_elemts()/Scalar_v::Size);
 
-    for (size_t nt = 0; nt < tests; ++nt) {
+    for (size_t nt = 0; nt < nTests; ++nt) {
         vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray_hor, planes_hor, results, padding);
         for (auto &intersection : results) check_sum_v += intersection.dist;
         results.clear();
