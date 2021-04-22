@@ -4,9 +4,9 @@
 namespace vec_intr {
 
 
-auto eig_intersect_4D(ray_data<Vector4_s>& ray,
-                      Vector4_s& planeNormal,
-                      Vector4_s& planePoint) {
+inline auto eig_intersect_4D(ray_data<Vector4_s>& ray,
+                             Vector4_s& planeNormal,
+                             Vector4_s& planePoint) {
   Scalar nom   = (ray.point - planePoint).dot(planeNormal);
   Scalar coeff = nom / ray.direction.dot(planeNormal);
 
@@ -16,14 +16,13 @@ auto eig_intersect_4D(ray_data<Vector4_s>& ray,
 }
 
 
-
 template<typename vector_t>
-void eig_intersect_4D(ray_data<Vector4_s>& ray,
-                      plane_data<aligned::vector<vector_t>> planes,
-                      aligned::vector<intersection<Scalar, Vector4_s>> &results) {
+inline void eig_intersect_4D(ray_data<Vector4_s>& ray,
+                             plane_data<aligned::vector<vector_t>> &planes,
+                             aligned::vector<intersection<Scalar, Vector4_s>> &results) {
   #ifdef DEBUG
   //TODO: make constexpr
-  if (planePoints.size() != planeNormals.size()) {
+  if (planes.points.size() != planes.normals.size()) {
     std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
     return;
   }
@@ -68,9 +67,9 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
 //-----------------------------------------------------------------------
 
 template<typename vector_v, typename vector_s>
-void vc_intersect_vert(ray_data<Vector4_s> &ray,
-                       plane_data<aligned::vector<vector_s>> &planes,
-                       aligned::vector<intersection<typename vector_v::value_type, Vc::SimdArray<typename vector_v::value_type, 4>>> &results) {
+inline void vc_intersect_vert(ray_data<Vector4_s> &ray,
+                              plane_data<aligned::vector<vector_s>> &planes,
+                              aligned::vector<intersection<typename vector_v::value_type, Vc::SimdArray<typename vector_v::value_type, 4>>> &results) {
   using scalar_t = typename vector_v::value_type;
   using simd_vec_t = Vc::SimdArray<scalar_t, 4>;
 
@@ -103,19 +102,11 @@ void vc_intersect_vert(ray_data<Vector4_s> &ray,
 
 
 template<typename vector_v, typename vector_s>
-auto vc_intersect_vert(ray_data<Vector4_s> &ray,
-                       Vector4_s& planeNormal,
-                       Vector4_s& planePoint) {
+inline auto vc_intersect_vert(ray_data<Vector4_s> &ray,
+                              Vector4_s &planeNormal,
+                              Vector4_s &planePoint) {
   using scalar_t = typename vector_v::value_type;
   using simd_vec_t = Vc::SimdArray<scalar_t, 4>;
-
-  #ifdef DEBUG
-  //TODO: make constexpr
-  if (planes.points.size() != planes.normals.size()) {
-    std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
-    return;
-  }
-  #endif
 
   auto ray_dir   = simd_vec_t(ray.direction.data());
   auto ray_point = simd_vec_t(ray.point.data());
@@ -136,15 +127,15 @@ auto vc_intersect_vert(ray_data<Vector4_s> &ray,
 
 
 template<typename scalar_v>
-void vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
-                         plane_data<aligned::vector<Vector3<typename scalar_v::value_type>>> &planes,
-                         aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results) {
+inline void vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
+                                plane_data<aligned::vector<Vector3<typename scalar_v::value_type>>> &planes,
+                                aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results) {
 
   using scalar_t = typename scalar_v::value_type;
 
   #ifdef DEBUG
   //TODO: make constexpr
-  if (pns_struct.size() != pps_struct.size()) {
+  if (planes.points.size() != planes.normals.size()) {
     std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
     return;
   }
@@ -182,16 +173,8 @@ void vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
 
 
 template<typename scalar_v>
-auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
-                         plane_data<Vector3<scalar_v>>& planes) {
-
-  #ifdef DEBUG
-  //TODO: make constexpr
-  if (pns_struct.size() != pps_struct.size()) {
-    std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
-    return;
-  }
-  #endif
+inline auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
+                                plane_data<Vector3<scalar_v>> &planes) {
 
   scalar_v denom_x (ray.direction.x * planes.normals.x);
   scalar_v denom_y (ray.direction.y * planes.normals.y);
@@ -213,15 +196,14 @@ auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
   return std::move(results);
 }
 
-
 template<typename scalar_v, typename vector_s, size_t kDIM = 3>
-void vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
-                        plane_data<aligned::vector<MatrixV<vector_s>>>& planes,
-                        aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results,
-                        size_t padding = 0) {
+inline void vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
+                               plane_data<aligned::vector<MatrixV<vector_s>>> &planes,
+                               aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results,
+                               size_t padding = 0) {
   #ifdef DEBUG
   //TODO: make constexpr
-  if (planePoints.size() != planeNormals.size()) {
+  if (planes.points.size() != planes.normals.size()) {
     std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
     return;
   }
@@ -266,10 +248,10 @@ void vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
 
 
 template<typename scalar_v, typename data_ptr_t, size_t kDIM = 3>
-auto vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
-                        data_ptr_t pl_normals_ptr,
-                        data_ptr_t pl_points_ptr,
-                        size_t& offset) {
+inline auto vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
+                               data_ptr_t pl_normals_ptr,
+                               data_ptr_t pl_points_ptr,
+                               size_t offset) {
     #ifdef DEBUG
     if (pl_normals_ptr == nullptr || pl_points_ptr == nullptr) {
       std::cerr << "Passed invalid data collection pointer to intersection" << std::endl;

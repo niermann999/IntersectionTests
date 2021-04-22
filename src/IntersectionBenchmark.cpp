@@ -380,7 +380,7 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state) {
     std::cerr << check_sum << std::endl;
     
     #ifdef DEBUG 
-    auto t2 = clock::now();#endif
+    auto t2 = clock::now();
     auto duration = duration_cast<unit_ms>(t2 - t1);
     std::cout << "Eigen 4D (w vec): " << duration.count() << "ms\n";
     #endif
