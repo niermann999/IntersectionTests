@@ -12,7 +12,7 @@ auto eig_intersect_4D(ray_data<Vector4_s>& ray,
 
   intersection<Scalar, Vector4_s> results = {.path = Vector4_s(ray.point - coeff*ray.direction),
                                              .dist = coeff};       
-  return results;
+  return std::move(results);
 }
 
 
@@ -129,8 +129,8 @@ auto vc_intersect_vert(ray_data<Vector4_s> &ray,
   scalar_t coeff = nom.sum() / denom.sum();
   auto path = (ray_point - coeff*ray_dir);
 
-  intersection<scalar_t, simd_vec_t> res = {.path = std::move(path), .dist = coeff};
-  return res;
+  intersection<scalar_t, simd_vec_t> results = {.path = std::move(path), .dist = coeff};
+  return std::move(results);
 }
 
 
@@ -209,8 +209,8 @@ auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>>& ray,
                             .y = (ray.point.y - coeffs*ray.direction.y),
                             .z = (ray.point.z - coeffs*ray.direction.z)};
 
-  intersection<scalar_v, Vector3<scalar_v>> res = {.path = std::move(path), .dist = std::move(coeffs)};
-  return res;
+  intersection<scalar_v, Vector3<scalar_v>> results = {.path = std::move(path), .dist = std::move(coeffs)};
+  return std::move(results);
 }
 
 
@@ -300,8 +300,8 @@ auto vc_intersect_horiz(ray_data<Vector3<scalar_v>>& ray,
                               .y = Vc::fma(coeffs, -ray.direction.y, ray.point.y), 
                               .z = Vc::fma(coeffs, -ray.direction.z, ray.point.z)};
 
-    intersection<scalar_v, Vector3<scalar_v>> res = {.path = std::move(path), .dist = std::move(coeffs)};
-    return std::move(res);
+    intersection<scalar_v, Vector3<scalar_v>> results = {.path = std::move(path), .dist = std::move(coeffs)};
+    return std::move(results);
 }
 
 
