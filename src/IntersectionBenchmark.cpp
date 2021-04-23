@@ -21,8 +21,8 @@ namespace vec_intr {
 
 namespace g_bench {
 
-constexpr size_t nTests = 100;
-constexpr size_t nSurfaces = 128000;
+constexpr size_t nTests = 10;
+constexpr size_t nSurfaces = 432786;
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types
 static_assert(data_trait<Vector4_s>::is_vec_layout, "Input type has non-compatible memory layout for vectorization");
@@ -354,10 +354,11 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state) {
     auto padding = planes_hor.points.front().padding();
 
     // Access to raw data that will be loaded as scalar_v
-    size_t n_bytes = planes_hor.points.size() * (planes_hor.points.front().n_elemts() + padding);
-    size_t offset  = Scalar_v::Size + padding;
-    if (n_bytes % (3*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
-    size_t n_vec = n_bytes / (3*offset);
+    size_t n_float_pnt = planes_hor.points.size() * (planes_hor.points.front().n_elemts() + padding);
+    size_t offset  = planes_hor.points.front().n_elemts() + padding;
+    // Process 3 geometrical coordinates
+    if (n_float_pnt % (3*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
+    size_t n_vec = n_float_pnt / (3*offset);
 
     #ifdef DEBUG 
     auto t1 = clock::now();

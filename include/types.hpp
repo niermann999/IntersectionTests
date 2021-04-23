@@ -31,21 +31,8 @@ using Vector4_s  = Eigen::Matrix<Scalar, 4, 1>;
 using VectorV_s  = Eigen::Matrix<Scalar, Scalar_v::Size, 1>;
 using Transform4 = Eigen::Transform<Scalar, 4, Eigen::Affine>;
 
-
-// prevent false cache sharing
-#ifdef __cpp_lib_hardware_interference_size
-    using std::hardware_constructive_interference_size;
-    using std::hardware_destructive_interference_size;
-#else
-    // Lucky guess │ __cacheline_aligned │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ ...
-    constexpr std::size_t hardware_constructive_interference_size
-        = 2 * sizeof(std::max_align_t);
-    constexpr std::size_t hardware_destructive_interference_size
-        = 2 * sizeof(std::max_align_t);
-#endif
-
 // Check for max alignment!!e.g. Vc::VectorAlignment 
-//constexpr size_t alignment = hardware_constructive_interference_size;
+//constexpr size_t alignment = std::hardware_constructive_interference_size;
 constexpr size_t alignment = alignof(Scalar_v);
 namespace aligned {
   // Allow Vc to get alignment right
@@ -58,6 +45,7 @@ namespace aligned {
   template<size_t kDIM>
   using mem_t = Vc::Memory<Scalar_v, kDIM>;
 
+  // TODO use placement new rather
   template<typename vector_s, typename mem_v>
   using storage_t = std::aligned_union_t<1, vector_s, mem_v>;
 
@@ -66,7 +54,7 @@ namespace aligned {
                         memory_t memory;};
 } //namespace aligned
 
-// Use in AoS
+// Needed in AoS
 template<typename data_t>
 struct Vector3
 {
@@ -79,18 +67,13 @@ struct Vector4
   data_t x, y, z, t;
 };
 
-// Use in AoS for vertical vectorization
-// Keep the geometrical vectors as Vc vectors (vertical vect.)
-// Keep the plane points extra to make the struct alignment easier
+// Convenience types
 template<typename data_t>
 struct alignas(alignment) ray_data
 {
   data_t direction, point;
 };
 
-// Use in AoS for vertical vectorization
-// Keep the geometrical vectors as Vc vectors (vertical vect.)
-// Keep the plane points extra to make the struct alignment easier
 template<typename data_t>
 struct alignas(alignment) plane_data
 {
@@ -120,9 +103,8 @@ struct data_trait {
 
 //---------------------------------------------------Plugin specific
 
-// define type that holds input data: has to be memory layout compatible with the Vc Vector type, i.e. 
-//                                    has to have same ABI as array of T with rows*cols many entries
-// To be specialized by the LA plugins
+// Small-time wrapper for a uniform interface, will be taken care of by the LA plugin
+// later
 template<typename Derived>
 struct alignas(alignment) MatrixV {
   using value_type = typename Eigen::DenseBase<Derived>::Scalar;
@@ -131,7 +113,7 @@ struct alignas(alignment) MatrixV {
   //void init() {obj = decltype(obj)::Random();}
   constexpr size_t n_elemts() {return obj.rows() * obj.cols();}
   const value_type* data() {return obj.data();}
-  constexpr size_t padding() {return (alignment - n_elemts() * sizeof(value_type)) / sizeof(value_type);}
+  constexpr size_t padding() {return (alignment - (n_elemts() * sizeof(value_type)) % alignment) % alignment / sizeof(value_type);}
 };
 
 // Affine transform is not derived from Eigen::DenseBase
@@ -142,10 +124,10 @@ struct alignas(alignment) MatrixV<Transform4> {
   Transform4 obj;
   const size_t n_elemts() {return obj.rows() * obj.cols();}
   const value_type* data() {return obj.data();}
-  const size_t padding() {return (alignment - n_elemts() * sizeof(value_type)) / sizeof(value_type);}
+  const size_t padding() {return (alignment - (n_elemts() * sizeof(value_type)) % alignment) % alignment / sizeof(value_type);}
 };
 
-
+// Eigen specific types
 template<typename Derived>
 struct data_trait {
   using type  = MatrixV<Derived>;

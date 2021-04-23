@@ -210,10 +210,11 @@ inline void vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
   #endif
 
   // Access to raw data that will be loaded as scalar_v
-  size_t n_bytes = planes.points.size() * (planes.points.front().n_elemts() + padding);
-  size_t offset  = scalar_v::Size + padding;
-  if (n_bytes % (kDIM*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
-  size_t n_inters = n_bytes / (kDIM*offset);
+  size_t n_float_pnt = planes.points.size() * (planes.points.front().n_elemts() + padding);
+  size_t offset  = planes.points.front().n_elemts() + padding;
+  // Process 3 geometrical coordinates
+  if (n_float_pnt % (3*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
+  size_t n_inters = n_float_pnt / (kDIM*offset);
   if (results.capacity() < n_inters) results.reserve(n_inters);
 
   auto pp_ptr = planes.points.front().data();
