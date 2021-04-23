@@ -68,24 +68,24 @@ struct Vector4
 };
 
 // Assume 4x4 transformation matrix (placement) as input
-template<typename data_t, typename matrix_t>
+template<typename data_t>
 struct Transform4
 {
-  // the rest of the 4x4 matrix
-  matrix_t mat;
+  // the rest of the 4x4 matrix (avoid padding)
+  Vector4<data_t> vec0, vec1;
   // plane normal
   Vector4<data_t> normal;
   // plane translation
   Vector4<data_t> translation;
 };
 
-// Assume 4x4 transformation matrix (placement) as input 
-// Eigen compact format
-template<typename data_t, typename matrix_t>
+// Assume 4x4 transformation (placement) as input 
+// Eigen compact format (3x3 in memory)
+template<typename data_t>
 struct Transform3
 {
-  // the rest of the 4x4 matrix
-  matrix_t mat;
+  // the rest of the 3x3 matrix (avoid padding)
+  Vector3<data_t> vec0, vec1;
   // plane normal
   Vector3<data_t> normal;
   // plane translation
