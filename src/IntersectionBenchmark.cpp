@@ -21,8 +21,8 @@ namespace vec_intr {
 
 namespace g_bench {
 
-constexpr size_t nTests = 10;
-constexpr size_t nSurfaces = 432786;
+constexpr size_t nTests = 100;
+constexpr size_t nSurfaces = 25367;
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types
 static_assert(data_trait<Vector4_s>::is_vec_layout, "Input type has non-compatible memory layout for vectorization");
@@ -181,10 +181,26 @@ class HorizSetup : public benchmark::Fixture {
       ray_dir_hor  = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
       ray_point_hor = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
 
-      // dimension * number of matrices needed
-      for (size_t offset = 0; offset < 3 * nSurfaces/Scalar_v::Size; offset++) {
-        pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()});
+      // need 3 vc vectors every "vector-reg. width" of surfaces (can compute "vector-reg. width" surfaces at the same time)
+      for (size_t s = 0; s < nSurfaces/Scalar_v::Size; s++) {
+        pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //x
+        pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //y
+        pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //z
+
         pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
+        pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
+        pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
+      }
+      // padding at the end of data container needed (just add one more calculation for simplicity)
+      if (nSurfaces/Scalar_v::Size != 0) {
+        pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //x
+        pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //y
+        pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //z
+
+        pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
+        pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
+        pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
+
       }
 
       // horizontal ray container
@@ -358,7 +374,7 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state) {
     size_t offset  = planes_hor.points.front().n_elemts() + padding;
     // Process 3 geometrical coordinates
     if (n_float_pnt % (3*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
-    size_t n_vec = n_float_pnt / (3*offset);
+    size_t n_loops = n_float_pnt / (3*offset);
 
     #ifdef DEBUG 
     auto t1 = clock::now();
@@ -368,7 +384,7 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state) {
         auto pl_normals_ptr = const_cast<const Scalar*>(planes_hor.normals.front().data());
         auto pl_points_ptr  = const_cast<const Scalar*>(planes_hor.points.front().data());
 
-        for (size_t i = 0; i < n_vec; i++) {
+        for (size_t i = 0; i < n_loops; i++) {
           auto intersection = vc_intersect_horiz<Scalar_v, const Scalar*>(ray_hor, pl_normals_ptr, pl_points_ptr, offset);
 
           check_sum_v    += intersection.dist;
