@@ -26,10 +26,10 @@ using Scalar_v = Vc::float_v;
 
 using Index_v  = Scalar_v::IndexType;
 
-using Vector3_s  = Eigen::Matrix<Scalar, 3, 1>;
-using Vector4_s  = Eigen::Matrix<Scalar, 4, 1>;
-using VectorV_s  = Eigen::Matrix<Scalar, Scalar_v::Size, 1>;
-using Transform4 = Eigen::Transform<Scalar, 4, Eigen::Affine>;
+using Vector3_s    = Eigen::Matrix<Scalar, 3, 1>;
+using Vector4_s    = Eigen::Matrix<Scalar, 4, 1>;
+using VectorV_s    = Eigen::Matrix<Scalar, Scalar_v::Size, 1>;
+using Transform4_s = Eigen::Transform<Scalar, 4, Eigen::Affine>;
 
 // Check for max alignment!!e.g. Vc::VectorAlignment 
 //constexpr size_t alignment = std::hardware_constructive_interference_size;
@@ -65,6 +65,31 @@ template<typename data_t>
 struct Vector4
 {
   data_t x, y, z, t;
+};
+
+// Assume 4x4 transformation matrix (placement) as input
+template<typename data_t, typename matrix_t>
+struct Transform4
+{
+  // the rest of the 4x4 matrix
+  matrix_t mat;
+  // plane normal
+  Vector4<data_t> normal;
+  // plane translation
+  Vector4<data_t> translation;
+};
+
+// Assume 4x4 transformation matrix (placement) as input 
+// Eigen compact format
+template<typename data_t, typename matrix_t>
+struct Transform3
+{
+  // the rest of the 4x4 matrix
+  matrix_t mat;
+  // plane normal
+  Vector3<data_t> normal;
+  // plane translation
+  Vector3<data_t> translation;
 };
 
 // Convenience types
@@ -118,10 +143,10 @@ struct alignas(alignment) MatrixV {
 
 // Affine transform is not derived from Eigen::DenseBase
 template<>
-struct alignas(alignment) MatrixV<Transform4> {
-  using value_type = typename Transform4::Scalar;
-  using obj_type   = Transform4;
-  Transform4 obj;
+struct alignas(alignment) MatrixV<Transform4_s> {
+  using value_type = typename Transform4_s::Scalar;
+  using obj_type   = Transform4_s;
+  Transform4_s obj;
   const size_t n_elemts() {return obj.rows() * obj.cols();}
   const value_type* data() {return obj.data();}
   const size_t padding() {return (alignment - (n_elemts() * sizeof(value_type)) % alignment) % alignment / sizeof(value_type);}
@@ -142,13 +167,13 @@ struct data_trait {
 
 // Affine transform is not derived from Eigen::DenseBase
 template<>
-struct data_trait<Transform4> {
-  using type  = MatrixV<Transform4>;
-  using value_type = Transform4::Scalar;
+struct data_trait<Transform4_s> {
+  using type  = MatrixV<Transform4_s>;
+  using value_type = Transform4_s::Scalar;
   static const size_t size = sizeof(type)/sizeof(value_type);
 
   static constexpr bool is_std_layout = std::is_standard_layout_v<type> 
-                                        && std::is_standard_layout_v<Transform4::VectorType>;
+                                        && std::is_standard_layout_v<Transform4_s::VectorType>;
   static constexpr bool is_same_type  = std::is_same_v<value_type, Scalar_v::value_type>;
   static constexpr bool is_vec_dim    = Scalar_v::Size > size ? Scalar_v::Size % size == 0 : size % Scalar_v::Size == 0;
   static constexpr bool is_vec_layout = is_std_layout && is_same_type && is_vec_dim;

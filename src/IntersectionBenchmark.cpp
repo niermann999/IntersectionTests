@@ -353,7 +353,7 @@ BENCHMARK_F(HybridSetup, intersectVcHybrid_wres)(benchmark::State& state) {
 //
 // Use a horizontal vectorization and data set
 //
-BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state) {
+BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
 
   for (auto _: state) {
     check_sum   = 0.0;
