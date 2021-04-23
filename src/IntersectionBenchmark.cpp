@@ -76,26 +76,24 @@ class VertSetup : public benchmark::Fixture {
     ~VertSetup() = default;
     void SetUp(const ::benchmark::State& /*state*/) {
 
-      ray_dir = Vector4_s::Random();
+      ray_dir   = Vector4_s::Random();
       ray_point = Vector4_s::Random();
 
       pl_normals.reserve(nSurfaces);
       pl_points.reserve(nSurfaces);
       for (size_t i = 0; i < nSurfaces; i++) {
         pl_normals.push_back({.obj = vector_s::obj_type::Random()});
-        pl_points.push_back({.obj = vector_s::obj_type::Random()});
+        pl_points.push_back( {.obj = vector_s::obj_type::Random()});
       }
 
         // vertical data containers
-      ray    = {.direction = ray_dir, 
-                .point     = ray_point}; 
-      planes = {.normals = pl_normals, 
-                .points  = pl_points};
+      ray    = {.direction = std::move(ray_dir), 
+                .point     = std::move(ray_point)}; 
+      planes = {.normals = std::move(pl_normals), 
+                .points  = std::move(pl_points)};
     }
 
     void TearDown(const ::benchmark::State& /*state*/) {
-      pl_normals.clear();
-      pl_points.clear();
       planes.normals.clear();
       planes.points.clear();
     }
@@ -131,27 +129,23 @@ class HybridSetup : public benchmark::Fixture {
       pl_points_struct.reserve(nSurfaces);
       for (size_t i = 0; i < nSurfaces; i++) {
         pl_normals_struct.push_back({.x=uni(), .y=uni(), .z=uni()});
-        pl_points_struct.push_back({.x=uni(), .y=uni(), .z=uni()});
+        pl_points_struct.push_back( {.x=uni(), .y=uni(), .z=uni()});
       }
 
       // Horizontal data (interleaved)
-      ray_dir_hor  = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
+      ray_dir_hor   = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
       ray_point_hor = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
 
       // AoS container
-      ray_struct    = {.direction = ray_dir_hor, 
-                      .point     = ray_point_hor}; 
-      planes_struct = {.normals = pl_normals_struct, 
-                      .points  = pl_points_struct};
+      ray_struct    = {.direction = std::move(ray_dir_hor), 
+                       .point     = std::move(ray_point_hor)}; 
+      planes_struct = {.normals = std::move(pl_normals_struct), 
+                       .points  = std::move(pl_points_struct)};
     }
 
     void TearDown(const ::benchmark::State& /*state*/) {
-      pl_normals_struct.clear();
-      pl_points_struct.clear();
       planes_struct.normals.clear();
       planes_struct.points.clear();
-      planes_hor.normals.clear();
-      planes_hor.points.clear();
     }
     
 };
@@ -182,6 +176,8 @@ class HorizSetup : public benchmark::Fixture {
       ray_point_hor = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
 
       // need 3 vc vectors every "vector-reg. width" of surfaces (can compute "vector-reg. width" surfaces at the same time)
+      pl_normals_hor.reserve(3* nSurfaces/Scalar_v::Size + 1);
+      pl_points_hor.reserve(3* nSurfaces/Scalar_v::Size + 1);
       for (size_t s = 0; s < nSurfaces/Scalar_v::Size; s++) {
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //x
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //y
@@ -200,23 +196,19 @@ class HorizSetup : public benchmark::Fixture {
         pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
         pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
         pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
-
       }
 
       // horizontal ray container
-      ray_hor    = {.direction = ray_dir_hor,    
-                    .point     = ray_point_hor};
-      planes_hor = {.normals = pl_normals_hor, 
-                    .points  = pl_points_hor};
+      ray_hor    = {.direction = std::move(ray_dir_hor),    
+                    .point     = std::move(ray_point_hor)};
+      planes_hor = {.normals = std::move(pl_normals_hor), 
+                    .points  = std::move(pl_points_hor)};
     }
 
     void TearDown(const ::benchmark::State& /*state*/) {
-      pl_normals_hor.clear();
-      pl_points_hor.clear();
       planes_hor.normals.clear();
       planes_hor.points.clear();
     }
-    
 };
 
 //----------------------------------------------------Run Tests

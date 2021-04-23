@@ -148,7 +148,7 @@ template <unsigned int kPlanes> void intersectEigen4D(ray_data<Vector4_s>& ray,
     }
   }
   // TODO watch the floating point comparision!!
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\t\t\t\t\tdone" << std::endl;
 }
 
@@ -175,7 +175,7 @@ template <unsigned int kPlanes> void intersectEigen4D_res(ray_data<Vector4_s>& r
       #endif
       results.clear();
   }
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\t\t\tdone" << std::endl;
 }
 
@@ -205,7 +205,7 @@ template <unsigned int kPlanes> void intersectVcVert(ray_data<Vector4_s>& ray,
       #endif
     }
   }
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\t\t\t\tdone" << std::endl;
 }
 
@@ -235,7 +235,7 @@ template <unsigned int kPlanes> void intersectVcVert_res(ray_data<Vector4_s>& ra
     #endif
     results.clear();
   }
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\tdone" << std::endl;
 }
 
@@ -272,7 +272,7 @@ template <unsigned int kPlanes> void intersectVcHybrid(ray_data<Vector3<Scalar_v
     }
   }
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\t\t\t\tdone" << std::endl;
 }
 
@@ -303,7 +303,7 @@ template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<Vector3<Scal
       results.clear();
   }
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\tdone" << std::endl;
 }
 
@@ -319,17 +319,17 @@ template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>
   auto padding = planes.points.front().padding();
 
   // Access to raw data that will be loaded as scalar_v
-  size_t n_bytes = planes.points.size() * (planes.points.front().n_elemts() + padding);
-  size_t offset  = Scalar_v::Size + padding;
-  size_t n_vec = n_bytes / (3*offset);
+  size_t n_float_pnt = planes.points.size() * (planes.points.front().n_elemts() + padding);
+  size_t offset      = planes.points.front().n_elemts() + padding;
+  size_t n_loops     = n_float_pnt / (3*offset);
 
-  BOOST_REQUIRE(n_bytes % (3*offset) == 0);
+  BOOST_REQUIRE(n_float_pnt % (3*offset) == 0);
 
   for (size_t nt = 0; nt < nTests; ++nt) {
       auto pl_normals_ptr = const_cast<const Scalar*>(planes.normals.front().data());
       auto pl_points_ptr  = const_cast<const Scalar*>(planes.points.front().data());
 
-      for (size_t i = 0; i < n_vec; i++) {
+      for (size_t i = 0; i < n_loops; i++) {
         auto intersection = vc_intersect_horiz<Scalar_v, const Scalar*>(ray, pl_normals_ptr, pl_points_ptr, offset);
 
         check_sum_v     += intersection.dist;
@@ -346,7 +346,7 @@ template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>
       }
   }
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\t\t\t\tdone" << std::endl;
 }
 
@@ -379,7 +379,7 @@ template <unsigned int kPlanes> void intersectVcHoriz_res(ray_data<Vector3<Scala
       results.clear();
   }
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == -12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
   std::cout << "\tdone" << std::endl;
 }
 

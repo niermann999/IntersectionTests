@@ -4,20 +4,20 @@
 namespace vec_intr {
 
 
-inline auto eig_intersect_4D(ray_data<Vector4_s>& ray,
-                             Vector4_s& planeNormal,
-                             Vector4_s& planePoint) {
-  Scalar nom   = (ray.point - planePoint).dot(planeNormal);
+inline auto eig_intersect_4D(ray_data<Vector4_s> &ray,
+                             Vector4_s &planeNormal,
+                             Vector4_s &planePoint) {
+  Scalar nom   = (planePoint - ray.point).dot(planeNormal);
   Scalar coeff = nom / ray.direction.dot(planeNormal);
 
-  intersection<Scalar, Vector4_s> results = {.path = Vector4_s(ray.point - coeff*ray.direction),
+  intersection<Scalar, Vector4_s> results = {.path = Vector4_s(ray.point + coeff*ray.direction),
                                              .dist = coeff};       
   return std::move(results);
 }
 
 
 template<typename vector_t>
-inline void eig_intersect_4D(ray_data<Vector4_s>& ray,
+inline void eig_intersect_4D(ray_data<Vector4_s> &ray,
                              plane_data<aligned::vector<vector_t>> &planes,
                              aligned::vector<intersection<Scalar, Vector4_s>> &results) {
   #ifdef DEBUG
@@ -29,10 +29,10 @@ inline void eig_intersect_4D(ray_data<Vector4_s>& ray,
   #endif
 
   for (size_t i = 0; i < planes.points.size(); i++) {
-    Scalar nom   = (ray.point - planes.points[i].obj).dot(planes.normals[i].obj);
+    Scalar nom   = (planes.points[i].obj - ray.point).dot(planes.normals[i].obj);
     Scalar coeff = nom / ray.direction.dot(planes.normals[i].obj);
 
-    results.emplace_back(intersection<Scalar, Vector4_s>{.path = Vector4_s(ray.point - coeff*ray.direction), .dist = coeff});
+    results.emplace_back(intersection<Scalar, Vector4_s>{.path = Vector4_s(ray.point + coeff*ray.direction), .dist = coeff});
   }
 }
 
@@ -91,10 +91,10 @@ inline void vc_intersect_vert(ray_data<Vector4_s> &ray,
     plane_point  = simd_vec_t(planes.points[i].data());
 
     auto denom = ray_dir * plane_normal;
-    auto nom   = (ray_point - plane_point) * plane_normal;
+    auto nom   = (plane_point - ray_point) * plane_normal;
 
     scalar_t coeff = nom.sum() / denom.sum();
-    auto path = (ray_point - coeff*ray_dir);
+    auto path = (ray_point + coeff*ray_dir);
 
     results.emplace_back(intersection<scalar_t, simd_vec_t>{.path = std::move(path), .dist = coeff});
   }
@@ -115,10 +115,10 @@ inline auto vc_intersect_vert(ray_data<Vector4_s> &ray,
   simd_vec_t  plane_point  = simd_vec_t(planePoint.data());
 
   auto denom = ray_dir * plane_normal;
-  auto nom   = (ray_point - plane_point) * plane_normal;
+  auto nom   = (plane_point - ray_point) * plane_normal;
 
   scalar_t coeff = nom.sum() / denom.sum();
-  auto path = (ray_point - coeff*ray_dir);
+  auto path = (ray_point + coeff*ray_dir);
 
   intersection<scalar_t, simd_vec_t> results = {.path = std::move(path), .dist = coeff};
   return std::move(results);
@@ -157,15 +157,15 @@ inline void vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
 
     scalar_v denoms (denom_x + denom_y + denom_z);
 
-    scalar_v nom_x ((ray.point.x - pps_x) * pns_x);
-    scalar_v nom_y ((ray.point.y - pps_y) * pns_y);
-    scalar_v nom_z ((ray.point.z - pps_z) * pns_z);
+    scalar_v nom_x ((pps_x - ray.point.x) * pns_x);
+    scalar_v nom_y ((pps_y - ray.point.y) * pns_y);
+    scalar_v nom_z ((pps_z - ray.point.z) * pns_z);
 
     scalar_v coeffs ((nom_x + nom_y + nom_z) / denoms);
 
-    Vector3<scalar_v> path = {.x = (ray.point.x - coeffs*ray.direction.x),
-                              .y = (ray.point.y - coeffs*ray.direction.y),
-                              .z = (ray.point.z - coeffs*ray.direction.z)};
+    Vector3<scalar_v> path = {.x = (ray.point.x + coeffs*ray.direction.x),
+                              .y = (ray.point.y + coeffs*ray.direction.y),
+                              .z = (ray.point.z + coeffs*ray.direction.z)};
 
     results.emplace_back(intersection<scalar_v, Vector3<scalar_v>>{.path = std::move(path), .dist = std::move(coeffs)});
   }
@@ -182,15 +182,15 @@ inline auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
 
   scalar_v denoms (denom_x + denom_y + denom_z);
 
-  scalar_v nom_x ((ray.point.x - planes.points.x) * planes.normals.x);
-  scalar_v nom_y ((ray.point.y - planes.points.y) * planes.normals.y);
-  scalar_v nom_z ((ray.point.z - planes.points.z) * planes.normals.z);
+  scalar_v nom_x ((planes.points.x - ray.point.x) * planes.normals.x);
+  scalar_v nom_y ((planes.points.y - ray.point.y) * planes.normals.y);
+  scalar_v nom_z ((planes.points.z - ray.point.z) * planes.normals.z);
 
   scalar_v coeffs ((nom_x + nom_y + nom_z) / denoms);
 
-  Vector3<scalar_v> path = {.x = (ray.point.x - coeffs*ray.direction.x),
-                            .y = (ray.point.y - coeffs*ray.direction.y),
-                            .z = (ray.point.z - coeffs*ray.direction.z)};
+  Vector3<scalar_v> path = {.x = (ray.point.x + coeffs*ray.direction.x),
+                            .y = (ray.point.y + coeffs*ray.direction.y),
+                            .z = (ray.point.z + coeffs*ray.direction.z)};
 
   intersection<scalar_v, Vector3<scalar_v>> results = {.path = std::move(path), .dist = std::move(coeffs)};
   return std::move(results);
@@ -224,24 +224,24 @@ inline void vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
   for (size_t i = 0; i < n_loops; i++) {
 
     scalar_v denoms(ray.direction.x * planeNormal);
-    scalar_v coeffs((ray.point.x - planePoint) * planeNormal);
+    scalar_v coeffs((planePoint - ray.point.x) * planeNormal);
     planeNormal.load(pn_ptr += offset, Vc::Streaming);
     planePoint.load( pp_ptr += offset, Vc::Streaming);
 
     denoms = Vc::fma(ray.direction.y, planeNormal, denoms);
-    coeffs = Vc::fma((ray.point.y - planePoint), planeNormal, coeffs);
+    coeffs = Vc::fma((planePoint - ray.point.y), planeNormal, coeffs);
     planeNormal.load(pn_ptr += offset, Vc::Streaming);
     planePoint.load( pp_ptr += offset, Vc::Streaming);
 
     denoms = Vc::fma(ray.direction.z, planeNormal, denoms);
-    coeffs = Vc::fma((ray.point.z - planePoint), planeNormal, coeffs);
+    coeffs = Vc::fma((planePoint - ray.point.z), planeNormal, coeffs);
     planeNormal.load(pn_ptr += offset, Vc::Streaming);
     planePoint.load( pp_ptr += offset, Vc::Streaming);
     coeffs /= denoms;
 
-    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, -ray.direction.x, ray.point.x), 
-                              .y = Vc::fma(coeffs, -ray.direction.y, ray.point.y), 
-                              .z = Vc::fma(coeffs, -ray.direction.z, ray.point.z)};
+    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
+                              .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
+                              .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
 
     results.emplace_back(intersection<scalar_v, Vector3<scalar_v>>{.path = std::move(path), .dist = std::move(coeffs)});
   }
@@ -264,24 +264,24 @@ inline auto vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
     scalar_v planeNormal(pl_normals_ptr);
 
     scalar_v denoms(ray.direction.x * planeNormal);
-    scalar_v coeffs((ray.point.x - planePoint) * planeNormal);
+    scalar_v coeffs((planePoint - ray.point.x) * planeNormal);
     planeNormal.load(pl_normals_ptr += offset, Vc::Streaming);
     planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
 
     denoms = Vc::fma(ray.direction.y, planeNormal, denoms);
-    coeffs = Vc::fma((ray.point.y - planePoint), planeNormal, coeffs);
+    coeffs = Vc::fma((planePoint - ray.point.y), planeNormal, coeffs);
     planeNormal.load(pl_normals_ptr += offset, Vc::Streaming);
     planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
 
     denoms = Vc::fma(ray.direction.z, planeNormal, denoms);
-    coeffs = Vc::fma((ray.point.z - planePoint), planeNormal, coeffs);
+    coeffs = Vc::fma((planePoint - ray.point.z), planeNormal, coeffs);
     planeNormal.load(pl_normals_ptr += offset, Vc::Streaming);
     planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
     coeffs /= denoms;
 
-    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, -ray.direction.x, ray.point.x), 
-                              .y = Vc::fma(coeffs, -ray.direction.y, ray.point.y), 
-                              .z = Vc::fma(coeffs, -ray.direction.z, ray.point.z)};
+    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
+                              .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
+                              .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
 
     intersection<scalar_v, Vector3<scalar_v>> results = {.path = std::move(path), .dist = std::move(coeffs)};
     return std::move(results);
