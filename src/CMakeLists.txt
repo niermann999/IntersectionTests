@@ -3,32 +3,27 @@
   set(_target "UnitTest${_name}")
   add_executable(${_target} ${ARGN})
 
-  target_compile_features(${_target} PUBLIC cxx_std_17)
-
   # define required BOOST_TEST_... macros here to ensure consistent names
   target_compile_definitions(
     ${_target}
-    PRIVATE "-DBOOST_TEST_DYN_LINK" "-DBOOST_TEST_MODULE=${_target}")
- 
-  target_include_directories(
-   ${_target}
-   SYSTEM PUBLIC ${EIGEN_INCLUDE_DIRS}
-  )
-
-  target_include_directories(${_target} 
-   PRIVATE ${CMAKE_INSTALL_INCLUDEDIR}
+    PRIVATE "-DBOOST_TEST_DYN_LINK" "-DBOOST_TEST_MODULE=${_target}"
   )
 
   target_include_directories(
     ${_target}
-    PRIVATE Core ${CMAKE_CURRENT_SOURCE_DIR})
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  )
 
   target_link_libraries(
     ${_target}
     PRIVATE
-      Boost::unit_test_framework Boost::timer
-      benchmark::benchmark
-      libVc.a)
+    Core
+    Boost::unit_test_framework Boost::timer
+    benchmark::benchmark
+    Vc
+    Eigen3::Eigen
+  )
+
   # register as unittest executable
   add_test(NAME ${_name} COMMAND ${_target})
 endmacro()
@@ -38,37 +33,28 @@ macro(add_benchmark _name)
   set(_target "Benchmark${_name}")
   add_executable(${_target} ${ARGN})
 
-  target_compile_features(${_target} PUBLIC cxx_std_17)
-
   target_compile_definitions(
     ${_target}
-    PRIVATE "-DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON" "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF")
+    PRIVATE "-DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON" "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF"
+  )
 
   add_compile_options(-pthread)
 
-  target_include_directories(${_target} 
-   PRIVATE ${CMAKE_BENCH_INCLUDEDIR}
-  )
- 
-  target_include_directories(
-   ${_target}
-   SYSTEM PUBLIC ${EIGEN_INCLUDE_DIRS}
-  )
-
-  target_include_directories(${_target} 
-   PRIVATE ${CMAKE_INSTALL_INCLUDEDIR}
-  )
-
   target_include_directories(
     ${_target}
-    PRIVATE Core ${CMAKE_CURRENT_SOURCE_DIR})
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  )
 
   target_link_libraries(
     ${_target}
     PRIVATE
-      benchmark::benchmark
-      benchmark::benchmark_main
-      libVc.a)
+    Core
+    benchmark::benchmark
+    benchmark::benchmark_main
+    Vc
+    Eigen3::Eigen
+  )
+
   # register as unittest executable
   add_test(NAME ${_name} COMMAND ${_target})
 endmacro()

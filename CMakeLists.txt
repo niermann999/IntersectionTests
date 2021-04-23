@@ -12,6 +12,16 @@ set(CMAKE_BENCH_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/benchmark/include)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/lib)
 set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
 
+# Define an interface target for the Vc library
+add_library(Vc INTERFACE)
+target_include_directories(Vc INTERFACE ${Vc_INCLUDE_DIR})
+target_link_libraries(Vc INTERFACE libVc.a -L${Vc_LIB_DIR})
+
+# Define an interface target for the core code
+add_library(Core INTERFACE)
+target_include_directories(Core INTERFACE ${CMAKE_INSTALL_INCLUDEDIR} ${CMAKE_SOURCE_DIR}/include/)
+target_compile_features(Core INTERFACE cxx_std_17)
+
 # General compile options
 add_compile_options(
        -O3 --std=c++17
