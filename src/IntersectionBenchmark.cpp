@@ -22,7 +22,7 @@ namespace vec_intr {
 namespace g_bench {
 
 constexpr size_t nTests = 100;
-constexpr size_t nSurfaces = 25367;
+constexpr size_t nSurfaces = 128000;
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types
 static_assert(data_trait<Vector4_s>::is_vec_layout, "Input type has non-compatible memory layout for vectorization");

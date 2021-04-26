@@ -9,6 +9,7 @@ inline auto eig_intersect_4D(ray_data<Vector4_s> &ray,
                              Vector4_s &planePoint) {
   Scalar coeff = (planePoint - ray.point).dot(planeNormal);
   Scalar denom = ray.direction.dot(planeNormal);
+  if (denom == 0) return intersection<Scalar, Vector4_s>{};
   coeff /= denom;
 
   intersection<Scalar, Vector4_s> results = {.path = Vector4_s(ray.point + coeff*ray.direction),
@@ -32,6 +33,7 @@ inline void eig_intersect_4D(ray_data<Vector4_s> &ray,
   for (size_t i = 0; i < planes.points.size(); i++) {
     Scalar coeff = (planes.points[i].obj - ray.point).dot(planes.normals[i].obj);
     Scalar denom = ray.direction.dot(planes.normals[i].obj);
+    if (denom == 0) return;
     coeff /= denom;
 
     results.emplace_back(intersection<Scalar, Vector4_s>{.path = Vector4_s(ray.point + coeff*ray.direction), .dist = coeff});
@@ -94,6 +96,7 @@ inline void vc_intersect_vert(ray_data<Vector4_s> &ray,
 
     scalar_t coeff = ((plane_point - ray_point) * plane_normal).sum();
     scalar_t denom = (ray_dir * plane_normal).sum();
+    if (denom == 0) return;
     coeff /= denom;
 
     auto path = (ray_point + coeff*ray_dir);
@@ -118,6 +121,7 @@ inline auto vc_intersect_vert(ray_data<Vector4_s> &ray,
 
   scalar_t coeff = ((plane_point - ray_point) * plane_normal).sum();
   scalar_t denom = (ray_dir * plane_normal).sum();
+  if (denom == 0) return intersection<scalar_t, simd_vec_t>{};
   coeff /= denom;
 
   auto path = (ray_point + coeff*ray_dir);
@@ -163,6 +167,9 @@ inline void vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
     coeffs = Vc::fma((pps_z - ray.point.z), pns_z, coeffs);
     coeffs /= denoms;
 
+    auto check_sum = coeffs.sum();
+    if (std::isnan(check_sum) || std::isinf(check_sum)) return;
+
     Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
                               .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
                               .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
@@ -184,8 +191,10 @@ inline auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
 
   denoms = Vc::fma(ray.direction.z, planes.normals.z, denoms);
   coeffs = Vc::fma((planes.points.z - ray.point.z), planes.normals.z, coeffs);
-
   coeffs /= denoms;
+
+  auto check_sum = coeffs.sum();
+  if (std::isnan(check_sum) || std::isinf(check_sum)) return intersection<scalar_v, Vector3<scalar_v>>{};
 
   Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
                             .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
@@ -238,6 +247,10 @@ inline void vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
     planePoint.load( pp_ptr += offset, Vc::Streaming);
     coeffs /= denoms;
 
+    auto check_sum = coeffs.sum();
+    if (std::isnan(check_sum) || std::isinf(check_sum)) return;
+
+
     Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
                               .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
                               .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
@@ -277,6 +290,11 @@ inline auto vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
     planeNormal.load(pl_normals_ptr += offset, Vc::Streaming);
     planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
     coeffs /= denoms;
+
+    auto check_sum = coeffs.sum();
+    if (std::isnan(check_sum) || std::isinf(check_sum)) {
+      return intersection<scalar_v, Vector3<scalar_v>> {};
+    }
 
     Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
                               .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
