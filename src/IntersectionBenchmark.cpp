@@ -219,34 +219,34 @@ class HorizSetup : public benchmark::Fixture {
 BENCHMARK_F(VertSetup, intersectEigen4D)(benchmark::State& state) {
 
   for (auto _: state) {
-    check_sum = 0;
-
     for (size_t nt = 0; nt < nTests; ++nt) {
       for (size_t i = 0; i < nSurfaces; i++) {
-        auto intersection = eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj);
-        check_sum += intersection.dist;
+        // Allow return value to be clobbered in memory
+        benchmark::DoNotOptimize(
+          eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj)
+        );
       }
     }
     // Prevent compiler from optimizing away the loop
-    std::cerr << check_sum << std::endl;
+    benchmark::ClobberMemory();
   }
 }
 
 BENCHMARK_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
 
-  for (auto _: state) {
-    check_sum = 0.0;
+  aligned::vector<intersection<Scalar, Vector4_s>> results;
+  results.reserve(planes.points.size());
 
-    aligned::vector<intersection<Scalar, Vector4_s>> results;
-    results.reserve(planes.points.size());
+  for (auto _: state) {
+    // Allow vector data to be clobbered in memory
+    benchmark::DoNotOptimize(results.data());
 
     for (size_t nt = 0; nt < nTests; ++nt) {
         eig_intersect_4D<vector_s>(ray, planes, results);
-        for (auto &intersection : results) check_sum += intersection.dist;
         results.clear();
     }
     // Prevent compiler from optimizing away the loop
-    std::cerr << check_sum << std::endl;
+    benchmark::ClobberMemory();
   }
 }
 
@@ -260,16 +260,16 @@ BENCHMARK_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
 BENCHMARK_F(VertSetup, intersectVcVert)(benchmark::State& state) {
 
   for (auto _: state) {
-    check_sum = 0.0;
-    
     for (size_t nt = 0; nt < nTests; ++nt) {
       for (size_t i = 0; i < nSurfaces; i++) {
-        auto intersection = vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj);
-        check_sum += intersection.dist;
+        // Allow return value to be clobbered in memory
+        benchmark::DoNotOptimize(
+          vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj)
+        );
       }
     }
     // Prevent compiler from optimizing away the loop
-    std::cerr << check_sum << std::endl;
+    benchmark::ClobberMemory();
   }
 }
 
@@ -278,19 +278,19 @@ BENCHMARK_F(VertSetup, intersectVcVert)(benchmark::State& state) {
 //
 BENCHMARK_F(VertSetup, intersectVcVert_wres)(benchmark::State& state) {
 
+  aligned::vector<intersection<Scalar, Vc::SimdArray<Scalar, 4>>> results;
+  results.reserve(planes.points.size());
+
   for (auto _: state) {
-    check_sum = 0.0;
-    
-    aligned::vector<intersection<Scalar, Vc::SimdArray<Scalar, 4>>> results;
-    results.reserve(planes.points.size());
+    // Allow vector data to be clobbered in memory
+    benchmark::DoNotOptimize(results.data());
 
     for (size_t nt = 0; nt < nTests; ++nt) {
       vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
-      for (auto &intersection : results) check_sum += intersection.dist;
       results.clear();
     }
     // Prevent compiler from optimizing away the loop
-    std::cerr << check_sum << std::endl;
+    benchmark::ClobberMemory();
   }
 }
 
@@ -300,9 +300,6 @@ BENCHMARK_F(VertSetup, intersectVcVert_wres)(benchmark::State& state) {
 BENCHMARK_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
 
   for (auto _: state) {
-    check_sum   = 0.0;
-    check_sum_v = 0.0;
-
     for (size_t nt = 0; nt < nTests; ++nt) {
       for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes_struct.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
         Scalar_v pns_x = planes_struct.normals[i][&Vector3<Scalar>::x];
@@ -316,13 +313,14 @@ BENCHMARK_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
         Vector3<Scalar_v> pl_point_strc {.x = pps_x, .y = pps_y, .z = pps_z};
         plane_data<Vector3<Scalar_v>> planes_strcts = {.normals = pl_normal_strc, .points = pl_point_strc};
 
-        auto intersection = vc_intersect_hybrid<Scalar_v>(ray_struct, planes_strcts);
-        check_sum_v += intersection.dist;
+        // Allow return value to be clobbered in memory
+        benchmark::DoNotOptimize(
+          vc_intersect_hybrid<Scalar_v>(ray_struct, planes_strcts)
+        );
       }
     }
     // Prevent compiler from optimizing away the loop
-    check_sum = check_sum_v.sum();
-    std::cerr << check_sum << std::endl;
+    benchmark::ClobberMemory();
   }
 }
 
@@ -332,21 +330,19 @@ BENCHMARK_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
 //
 BENCHMARK_F(HybridSetup, intersectVcHybrid_wres)(benchmark::State& state) {
   
-  for (auto _: state) {
-    check_sum   = 0.0;
-    check_sum_v = 0.0;
+  aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
+  results.reserve(planes_struct.normals.size());
 
-    aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
-    results.reserve(planes_struct.normals.size());
-    
+  for (auto _: state) {
+    // Allow vector data to be clobbered in memory
+    benchmark::DoNotOptimize(results.data());
+
     for (size_t nt = 0; nt < nTests; ++nt) {
         vc_intersect_hybrid<Scalar_v>(ray_struct, planes_struct, results);
-        for (auto &intersection : results) check_sum_v += intersection.dist;
         results.clear();
     }
     // Prevent compiler from optimizing away the loop
-    check_sum = check_sum_v.sum();
-    std::cerr << check_sum << std::endl;
+    benchmark::ClobberMemory();
   }
 }
 
@@ -356,9 +352,6 @@ BENCHMARK_F(HybridSetup, intersectVcHybrid_wres)(benchmark::State& state) {
 BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
 
   for (auto _: state) {
-    check_sum   = 0.0;
-    check_sum_v = 0.0;
-
     auto padding = planes_hor.points.front().padding();
 
     // Access to raw data that will be loaded as scalar_v
@@ -377,17 +370,17 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
         auto pl_points_ptr  = const_cast<const Scalar*>(planes_hor.points.front().data());
 
         for (size_t i = 0; i < n_loops; i++) {
-          auto intersection = vc_intersect_horiz<Scalar_v, const Scalar*>(ray_hor, pl_normals_ptr, pl_points_ptr, offset);
-
-          check_sum_v    += intersection.dist;
+          // Allow return value to be clobbered in memory
+          benchmark::DoNotOptimize(
+            vc_intersect_horiz<Scalar_v, const Scalar*>(ray_hor, pl_normals_ptr, pl_points_ptr, offset)
+          );
           pl_normals_ptr += 3 * offset;
           pl_points_ptr  += 3 * offset;
         }
     }
     // Prevent compiler from optimizing away the loop
-    check_sum = check_sum_v.sum();
-    std::cerr << check_sum << std::endl;
-    
+    benchmark::ClobberMemory();
+
     #ifdef DEBUG 
     auto t2 = clock::now();
     auto duration = duration_cast<unit_ms>(t2 - t1);
@@ -401,23 +394,20 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
 //
 BENCHMARK_F(HorizSetup, intersectVcHoriz_wres)(benchmark::State& state) {
   
+  aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
+  results.reserve(planes_hor.points.size() * planes_hor.points.front().n_elemts()/Scalar_v::Size);
+
   for (auto _: state) {
-    check_sum   = 0.0;
-    check_sum_v = 0.0;
-
     auto padding = planes_hor.points.front().padding();
-
-    aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
-    results.reserve(planes_hor.points.size() * planes_hor.points.front().n_elemts()/Scalar_v::Size);
+    // Allow vector data to be clobbered in memory
+    benchmark::DoNotOptimize(results.data());
 
     for (size_t nt = 0; nt < nTests; ++nt) {
         vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray_hor, planes_hor, results, padding);
-        for (auto &intersection : results) check_sum_v += intersection.dist;
         results.clear();
     }
     // Prevent compiler from optimizing away the loop
-    check_sum = check_sum_v.sum();
-    std::cerr << check_sum << std::endl;
+    benchmark::ClobberMemory();
   }
 }
 BENCHMARK_MAIN();
