@@ -4,6 +4,8 @@
 #include "types.hpp"
 #include "intersectors.hpp"
 
+#include <atomic>
+//#include <barrier> //c++ 20
 #include <iostream>
 #include <limits>
 
@@ -133,22 +135,19 @@ template <unsigned int kPlanes> void intersectEigen4D(ray_data<Vector4_s>& ray,
   std::cout << "Running Eigen 4D test ...";
   Scalar check_sum = 0.0;
 
-  for (size_t nt = 0; nt < nTests; ++nt) {
-    for (size_t i = 0; i < nSurfaces; i++) {
-      auto intersection = eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj);
-      check_sum += intersection.dist;
-      #ifdef DEBUG
-      if (nt % (nTests-1)/2 == 0) {
-        std::cout << "\n" << intersection.dist << std::endl;
-        for (int i = 0; i < 4; i++) {
-          std::cout << intersection.path[i] << ", ";
-        }
-      }
-      #endif
+  for (size_t i = 0; i < nSurfaces; i++) {
+    auto intersection = eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj);
+    check_sum += intersection.dist;
+    #ifdef DEBUG
+    std::cout << "\n" << intersection.dist << std::endl;
+    for (int i = 0; i < 4; i++) {
+      std::cout << intersection.path[i] << ", ";
     }
+    #endif
   }
+
   // TODO watch the floating point comparision!!
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\t\t\t\t\tdone" << std::endl;
 }
 
@@ -160,22 +159,19 @@ template <unsigned int kPlanes> void intersectEigen4D_res(ray_data<Vector4_s>& r
   aligned::vector<intersection<Scalar, Vector4_s>> results;
   results.reserve(planes.points.size());
 
-  for (size_t nt = 0; nt < nTests; ++nt) {
-      eig_intersect_4D<vector_s>(ray, planes, results);
-      for (auto &intersection : results) check_sum += intersection.dist;
-      #ifdef DEBUG
-      if (nt % (nTests-1)/2 == 0) {
-        for (auto &intersection : results) {
-          std::cout << "\n" << intersection.dist << std::endl;
-          for (int i = 0; i < 4; i++) {
-            std::cout << intersection.path[i] << ", ";
-          }
-        }
-      }
-      #endif
-      results.clear();
+  eig_intersect_4D<vector_s>(ray, planes, results);
+  for (auto &intersection : results) check_sum += intersection.dist;
+  #ifdef DEBUG
+  for (auto &intersection : results) {
+    std::cout << "\n" << intersection.dist << std::endl;
+    for (int i = 0; i < 4; i++) {
+      std::cout << intersection.path[i] << ", ";
+    }
   }
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  #endif
+  results.clear();
+
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\t\t\tdone" << std::endl;
 }
 
@@ -190,22 +186,18 @@ template <unsigned int kPlanes> void intersectVcVert(ray_data<Vector4_s>& ray,
                                                       plane_data<aligned::vector<vector_s>>& planes) {
   std::cout << "Running vert. Vectoriztion test ...";
   Scalar check_sum = 0.0;
-  
-  for (size_t nt = 0; nt < nTests; ++nt) {
-    for (size_t i = 0; i < nSurfaces; i++) {
-      auto intersection = vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj);
-      check_sum += intersection.dist;
-      #ifdef DEBUG
-      if (nt % (nTests-1)/2 == 0) {
-        std::cout << "\n" << intersection.dist << std::endl;
-        for (int i = 0; i < 4; i++) {
-          std::cout << intersection.path[i] << ", ";
-        }
-      }
-      #endif
+
+  for (size_t i = 0; i < nSurfaces; i++) {
+    auto intersection = vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj);
+    check_sum += intersection.dist;
+    #ifdef DEBUG
+    std::cout << "\n" << intersection.dist << std::endl;
+    for (int i = 0; i < 4; i++) {
+      std::cout << intersection.path[i] << ", ";
     }
+    #endif
   }
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\t\t\t\tdone" << std::endl;
 }
 
@@ -220,22 +212,19 @@ template <unsigned int kPlanes> void intersectVcVert_res(ray_data<Vector4_s>& ra
   aligned::vector<intersection<Scalar, Vc::SimdArray<Scalar, 4>>> results;
   results.reserve(planes.points.size());
 
-  for (size_t nt = 0; nt < nTests; ++nt) {
-    vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
-    for (auto &intersection : results) check_sum += intersection.dist;
-    #ifdef DEBUG
-    if (nt % (nTests-1)/2 == 0) {
-      for (auto &intersection : results) {
-        std::cout << "\n" << intersection.dist << std::endl;
-        for (int i = 0; i < 4; i++) {
-          std::cout << intersection.path[i] << ", ";
-        }
-      }
+  vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
+  for (auto &intersection : results) check_sum += intersection.dist;
+  #ifdef DEBUG
+  for (auto &intersection : results) {
+    std::cout << "\n" << intersection.dist << std::endl;
+    for (int i = 0; i < 4; i++) {
+      std::cout << intersection.path[i] << ", ";
     }
-    #endif
-    results.clear();
   }
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  #endif
+  results.clear();
+  
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\tdone" << std::endl;
 }
 
@@ -248,31 +237,27 @@ template <unsigned int kPlanes> void intersectVcHybrid(ray_data<Vector3<Scalar_v
   Scalar   check_sum   = 0.0;
   Scalar_v check_sum_v = 0.0;
 
-  for (size_t nt = 0; nt < nTests; ++nt) {
-    for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
-      Scalar_v pns_x = planes.normals[i][&Vector3<Scalar>::x];
-      Scalar_v pns_y = planes.normals[i][&Vector3<Scalar>::y];
-      Scalar_v pns_z = planes.normals[i][&Vector3<Scalar>::z];
-      Vector3<Scalar_v> pl_normal_strc {.x = pns_x, .y = pns_y, .z = pns_z};
+  for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
+    Scalar_v pns_x = planes.normals[i][&Vector3<Scalar>::x];
+    Scalar_v pns_y = planes.normals[i][&Vector3<Scalar>::y];
+    Scalar_v pns_z = planes.normals[i][&Vector3<Scalar>::z];
+    Vector3<Scalar_v> pl_normal_strc {.x = pns_x, .y = pns_y, .z = pns_z};
 
-      Scalar_v pps_x = planes.points[i][&Vector3<Scalar>::x];
-      Scalar_v pps_y = planes.points[i][&Vector3<Scalar>::y];
-      Scalar_v pps_z = planes.points[i][&Vector3<Scalar>::z];
-      Vector3<Scalar_v> pl_point_strc {.x = pps_x, .y = pps_y, .z = pps_z};
-      plane_data<Vector3<Scalar_v>> planes_strcts = {.normals = pl_normal_strc, .points = pl_point_strc};
+    Scalar_v pps_x = planes.points[i][&Vector3<Scalar>::x];
+    Scalar_v pps_y = planes.points[i][&Vector3<Scalar>::y];
+    Scalar_v pps_z = planes.points[i][&Vector3<Scalar>::z];
+    Vector3<Scalar_v> pl_point_strc {.x = pps_x, .y = pps_y, .z = pps_z};
+    plane_data<Vector3<Scalar_v>> planes_strcts = {.normals = pl_normal_strc, .points = pl_point_strc};
 
-      auto intersection = vc_intersect_hybrid<Scalar_v>(ray, planes_strcts);
-      check_sum_v += intersection.dist;
-      #ifdef DEBUG
-      if (nt % (nTests-1)/2 == 0) {
-        std::cout << intersection.dist << std::endl;
-        std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
-      }
-      #endif
-    }
+    auto intersection = vc_intersect_hybrid<Scalar_v>(ray, planes_strcts);
+    check_sum_v += intersection.dist;
+    #ifdef DEBUG
+      std::cout << intersection.dist << std::endl;
+      std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
+    #endif
   }
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\t\t\t\tdone" << std::endl;
 }
 
@@ -288,22 +273,19 @@ template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<Vector3<Scal
 
   aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
   results.reserve(planes.normals.size());
-  
-  for (size_t nt = 0; nt < nTests; ++nt) {
-      vc_intersect_hybrid<Scalar_v>(ray, planes, results);
-      for (auto &intersection : results) check_sum_v += intersection.dist;
-      #ifdef DEBUG
-      if (nt % (nTests-1)/2 == 0) {
-        for (auto &intersection : results) {
-          std::cout << intersection.dist << std::endl;
-          std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
-        }
-      }
-      #endif
-      results.clear();
+
+  vc_intersect_hybrid<Scalar_v>(ray, planes, results);
+  for (auto &intersection : results) check_sum_v += intersection.dist;
+  #ifdef DEBUG
+  for (auto &intersection : results) {
+    std::cout << intersection.dist << std::endl;
+    std::cout << intersection.path.x << "\t" << intersection.path.y << "\t" << intersection.path.z << std::endl;
   }
+  #endif
+  results.clear();
+
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\tdone" << std::endl;
 }
 
@@ -325,28 +307,24 @@ template <unsigned int kPlanes> void intersectVcHoriz(ray_data<Vector3<Scalar_v>
 
   BOOST_REQUIRE(n_float_pnt % (3*offset) == 0);
 
-  for (size_t nt = 0; nt < nTests; ++nt) {
-      auto pl_normals_ptr = const_cast<const Scalar*>(planes.normals.front().data());
-      auto pl_points_ptr  = const_cast<const Scalar*>(planes.points.front().data());
+  auto pl_normals_ptr = const_cast<const Scalar*>(planes.normals.front().data());
+  auto pl_points_ptr  = const_cast<const Scalar*>(planes.points.front().data());
 
-      for (size_t i = 0; i < n_loops; i++) {
-        auto intersection = vc_intersect_horiz<Scalar_v, const Scalar*>(ray, pl_normals_ptr, pl_points_ptr, offset);
+  for (size_t i = 0; i < n_loops; i++) {
+    auto intersection = vc_intersect_horiz<Scalar_v, const Scalar*>(ray, pl_normals_ptr, pl_points_ptr, offset);
 
-        check_sum_v     += intersection.dist;
-        pl_normals_ptr += 3 * offset;
-        pl_points_ptr  += 3 * offset;
+    check_sum_v     += intersection.dist;
+    pl_normals_ptr += 3 * offset;
+    pl_points_ptr  += 3 * offset;
 
-        #ifdef DEBUG 
-        if (nt % (nTests-1)/2 == 0) {
-          std::cout << intersection.dist << std::endl;
-          std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
-                    << intersection.path.z << std::endl;
-        }
-        #endif
-      }
+    #ifdef DEBUG
+    std::cout << intersection.dist << std::endl;
+    std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
+              << intersection.path.z << std::endl;
+    #endif
   }
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\t\t\t\tdone" << std::endl;
 }
 
@@ -364,22 +342,19 @@ template <unsigned int kPlanes> void intersectVcHoriz_res(ray_data<Vector3<Scala
   aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
   results.reserve(planes.points.size() * planes.points.front().n_elemts()/Scalar_v::Size);
 
-  for (size_t nt = 0; nt < nTests; ++nt) {
-      vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray, planes, results, padding);
-      for (auto &intersection : results) check_sum_v += intersection.dist;
-      #ifdef DEBUG 
-      if (nt % (nTests-1)/2 == 0) {
-        for (auto &intersection : results) {
-          std::cout << intersection.dist << std::endl;
-          std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
-                    << intersection.path.z << std::endl;
-        }
-      }
-      #endif
-      results.clear();
+  vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray, planes, results, padding);
+  for (auto &intersection : results) check_sum_v += intersection.dist;
+  #ifdef DEBUG
+  for (auto &intersection : results) {
+    std::cout << intersection.dist << std::endl;
+    std::cout << intersection.path.x << "\t" << intersection.path.y << "\t"
+              << intersection.path.z << std::endl;
   }
+  #endif
+  results.clear();
+
   check_sum = check_sum_v.sum();
-  BOOST_CHECK(check_sum == 12*static_cast<int>(nTests));
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\tdone" << std::endl;
 }
 

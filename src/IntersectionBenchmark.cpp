@@ -8,6 +8,8 @@
 #include <chrono>
 #include <ctime>
 #endif
+#include <atomic>
+//#include <barrier> //c++ 20
 #include <iostream>
 
 #include <boost/random/linear_congruential.hpp>
@@ -15,14 +17,20 @@
 #include <boost/random/variate_generator.hpp>
 #include <boost/generator_iterator.hpp>
 
+/*#include <boost/thread.hpp>
+#include <boost/thread/barrier.hpp>
+#include <boost/bind.hpp>
+#include <boost/atomic.hpp>*/
+
 #include <benchmark/benchmark.h>
 
 namespace vec_intr {
 
 namespace g_bench {
 
-constexpr size_t nTests = 100;
-constexpr size_t nSurfaces = 128000;
+constexpr size_t gbench_test_itrs = 10000;
+constexpr size_t nSurfaces = 132;
+constexpr size_t nThreads  = 1;
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types
 static_assert(data_trait<Vector4_s>::is_vec_layout, "Input type has non-compatible memory layout for vectorization");
@@ -74,7 +82,9 @@ class VertSetup : public benchmark::Fixture {
     #endif
 
     ~VertSetup() = default;
-    void SetUp(const ::benchmark::State& /*state*/) {
+    void SetUp(const ::benchmark::State& state) {
+      // Only the first thread sets the test env up
+      if (state.thread_index != 0) return;
 
       ray_dir   = Vector4_s::Random();
       ray_point = Vector4_s::Random();
@@ -93,9 +103,12 @@ class VertSetup : public benchmark::Fixture {
                 .points  = std::move(pl_points)};
     }
 
-    void TearDown(const ::benchmark::State& /*state*/) {
-      planes.normals.clear();
-      planes.points.clear();
+    void TearDown(const ::benchmark::State& state) {
+      // Only one thread frees recources
+      if (state.thread_index == 0) {
+        planes.normals.clear();
+        planes.points.clear();
+      }
     }
     
 };
@@ -122,9 +135,11 @@ class HybridSetup : public benchmark::Fixture {
     #endif
 
     ~HybridSetup() = default;
-    void SetUp(const ::benchmark::State& /*state*/) {
+    void SetUp(const ::benchmark::State& state) {
+      // Only the first thread sets the test env up
+      if (state.thread_index != 0) return;
 
-        // AoS data
+      // AoS data
       pl_normals_struct.reserve(nSurfaces);
       pl_points_struct.reserve(nSurfaces);
       for (size_t i = 0; i < nSurfaces; i++) {
@@ -143,9 +158,12 @@ class HybridSetup : public benchmark::Fixture {
                        .points  = std::move(pl_points_struct)};
     }
 
-    void TearDown(const ::benchmark::State& /*state*/) {
-      planes_struct.normals.clear();
-      planes_struct.points.clear();
+    void TearDown(const ::benchmark::State& state) {
+      // Only one thread frees recources
+      if (state.thread_index == 0) {
+        planes_struct.normals.clear();
+        planes_struct.points.clear();
+      }
     }
     
 };
@@ -169,7 +187,9 @@ class HorizSetup : public benchmark::Fixture {
     #endif
 
     ~HorizSetup() = default;
-    void SetUp(const ::benchmark::State& /*state*/) {
+    void SetUp(const ::benchmark::State& state) {
+      // Only the first thread sets the test env up
+      if (state.thread_index != 0) return;
 
       // Horizontal data (interleaved)
       ray_dir_hor  = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
@@ -205,9 +225,12 @@ class HorizSetup : public benchmark::Fixture {
                     .points  = std::move(pl_points_hor)};
     }
 
-    void TearDown(const ::benchmark::State& /*state*/) {
-      planes_hor.normals.clear();
-      planes_hor.points.clear();
+    void TearDown(const ::benchmark::State& state) {
+      // Only one thread frees recources
+      if (state.thread_index == 0) {
+        planes_hor.normals.clear();
+        planes_hor.points.clear();
+      }
     }
 };
 
@@ -216,37 +239,35 @@ class HorizSetup : public benchmark::Fixture {
 //----------------------------------------------------//
 // Eigen                                              //
 //----------------------------------------------------//
-BENCHMARK_F(VertSetup, intersectEigen4D)(benchmark::State& state) {
+BENCHMARK_DEFINE_F(VertSetup, intersectEigen4D)(benchmark::State& state) {
 
   for (auto _: state) {
-    for (size_t nt = 0; nt < nTests; ++nt) {
-      for (size_t i = 0; i < nSurfaces; i++) {
-        // Allow return value to be clobbered in memory
-        benchmark::DoNotOptimize(
-          eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj)
-        );
-      }
+    for (size_t i = 0; i < nSurfaces; i++) {
+      // Allow return value to be clobbered in memory
+      benchmark::DoNotOptimize(
+        eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj)
+      );
+      // Prevent compiler from optimizing away the loop
+      benchmark::ClobberMemory();
     }
-    // Prevent compiler from optimizing away the loop
-    benchmark::ClobberMemory();
   }
 }
 
-BENCHMARK_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
-
+BENCHMARK_DEFINE_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
   aligned::vector<intersection<Scalar, Vector4_s>> results;
-  results.reserve(planes.points.size());
+  if (state.thread_index == 0) results.reserve(planes.points.size());
 
+  //TODO: Make vector operations threadsafe
   for (auto _: state) {
     // Allow vector data to be clobbered in memory
     benchmark::DoNotOptimize(results.data());
 
-    for (size_t nt = 0; nt < nTests; ++nt) {
-        eig_intersect_4D<vector_s>(ray, planes, results);
-        results.clear();
-    }
+    eig_intersect_4D<vector_s>(ray, planes, results);
+
     // Prevent compiler from optimizing away the loop
     benchmark::ClobberMemory();
+    //TODO: Check threadsafety
+    results.clear();
   }
 }
 
@@ -257,70 +278,67 @@ BENCHMARK_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
 //
 // Use simdArray on unchanged data set
 //
-BENCHMARK_F(VertSetup, intersectVcVert)(benchmark::State& state) {
+BENCHMARK_DEFINE_F(VertSetup, intersectVcVert)(benchmark::State& state) {
 
   for (auto _: state) {
-    for (size_t nt = 0; nt < nTests; ++nt) {
-      for (size_t i = 0; i < nSurfaces; i++) {
-        // Allow return value to be clobbered in memory
-        benchmark::DoNotOptimize(
-          vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj)
-        );
-      }
+    for (size_t i = 0; i < nSurfaces; i++) {
+      // Allow return value to be clobbered in memory
+      benchmark::DoNotOptimize(
+        vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj)
+      );
+      // Prevent compiler from optimizing away the loop
+      benchmark::ClobberMemory();
     }
-    // Prevent compiler from optimizing away the loop
-    benchmark::ClobberMemory();
   }
 }
 
 //
 // Use simdArray on unchanged data set and save the results in a container
 //
-BENCHMARK_F(VertSetup, intersectVcVert_wres)(benchmark::State& state) {
+BENCHMARK_DEFINE_F(VertSetup, intersectVcVert_wres)(benchmark::State& state) {
 
   aligned::vector<intersection<Scalar, Vc::SimdArray<Scalar, 4>>> results;
-  results.reserve(planes.points.size());
+  if (state.thread_index == 0) results.reserve(planes.points.size());
 
+  //TODO: Make vector operations threadsafe
   for (auto _: state) {
     // Allow vector data to be clobbered in memory
     benchmark::DoNotOptimize(results.data());
 
-    for (size_t nt = 0; nt < nTests; ++nt) {
-      vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
-      results.clear();
-    }
+    vc_intersect_vert<Scalar_v, vector_s>(ray, planes, results);
+
     // Prevent compiler from optimizing away the loop
     benchmark::ClobberMemory();
+    //TODO: Check threadsafety
+    results.clear();
   }
 }
 
 //
 // Use a gather on a structured data set then vectorize horizontaly
 //
-BENCHMARK_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
+BENCHMARK_DEFINE_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
 
   for (auto _: state) {
-    for (size_t nt = 0; nt < nTests; ++nt) {
-      for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes_struct.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
-        Scalar_v pns_x = planes_struct.normals[i][&Vector3<Scalar>::x];
-        Scalar_v pns_y = planes_struct.normals[i][&Vector3<Scalar>::y];
-        Scalar_v pns_z = planes_struct.normals[i][&Vector3<Scalar>::z];
-        Vector3<Scalar_v> pl_normal_strc {.x = pns_x, .y = pns_y, .z = pns_z};
+    for (Index_v i(Scalar_v::IndexesFromZero()); (i < Index_v(planes_struct.points.size())).isFull(); i += Index_v(Scalar_v::Size)) {
+      Scalar_v pns_x = planes_struct.normals[i][&Vector3<Scalar>::x];
+      Scalar_v pns_y = planes_struct.normals[i][&Vector3<Scalar>::y];
+      Scalar_v pns_z = planes_struct.normals[i][&Vector3<Scalar>::z];
+      Vector3<Scalar_v> pl_normal_strc {.x = pns_x, .y = pns_y, .z = pns_z};
 
-        Scalar_v pps_x = planes_struct.points[i][&Vector3<Scalar>::x];
-        Scalar_v pps_y = planes_struct.points[i][&Vector3<Scalar>::y];
-        Scalar_v pps_z = planes_struct.points[i][&Vector3<Scalar>::z];
-        Vector3<Scalar_v> pl_point_strc {.x = pps_x, .y = pps_y, .z = pps_z};
-        plane_data<Vector3<Scalar_v>> planes_strcts = {.normals = pl_normal_strc, .points = pl_point_strc};
+      Scalar_v pps_x = planes_struct.points[i][&Vector3<Scalar>::x];
+      Scalar_v pps_y = planes_struct.points[i][&Vector3<Scalar>::y];
+      Scalar_v pps_z = planes_struct.points[i][&Vector3<Scalar>::z];
+      Vector3<Scalar_v> pl_point_strc {.x = pps_x, .y = pps_y, .z = pps_z};
+      plane_data<Vector3<Scalar_v>> planes_strcts = {.normals = pl_normal_strc, .points = pl_point_strc};
 
-        // Allow return value to be clobbered in memory
-        benchmark::DoNotOptimize(
-          vc_intersect_hybrid<Scalar_v>(ray_struct, planes_strcts)
-        );
-      }
+      // Allow return value to be clobbered in memory
+      benchmark::DoNotOptimize(
+        vc_intersect_hybrid<Scalar_v>(ray_struct, planes_strcts)
+      );
+      // Prevent compiler from optimizing away the loop
+      benchmark::ClobberMemory();
     }
-    // Prevent compiler from optimizing away the loop
-    benchmark::ClobberMemory();
   }
 }
 
@@ -328,58 +346,59 @@ BENCHMARK_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
 // Use a gather on a structured data set then vectorize horizontaly 
 // and save the results in a container
 //
-BENCHMARK_F(HybridSetup, intersectVcHybrid_wres)(benchmark::State& state) {
+BENCHMARK_DEFINE_F(HybridSetup, intersectVcHybrid_wres)(benchmark::State& state) {
   
   aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
-  results.reserve(planes_struct.normals.size());
+  if (state.thread_index == 0)  results.reserve(planes_struct.normals.size());
 
+  //TODO: Make vector operations threadsafe
   for (auto _: state) {
     // Allow vector data to be clobbered in memory
     benchmark::DoNotOptimize(results.data());
 
-    for (size_t nt = 0; nt < nTests; ++nt) {
-        vc_intersect_hybrid<Scalar_v>(ray_struct, planes_struct, results);
-        results.clear();
-    }
+    vc_intersect_hybrid<Scalar_v>(ray_struct, planes_struct, results);
+
     // Prevent compiler from optimizing away the loop
     benchmark::ClobberMemory();
+    //TODO: threadsafety
+    results.clear();
   }
 }
 
 //
 // Use a horizontal vectorization and data set
 //
-BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
+BENCHMARK_DEFINE_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
 
+  //TODO: Make pointer access threadsafe
   for (auto _: state) {
-    auto padding = planes_hor.points.front().padding();
-
+    size_t padding = planes_hor.points.front().padding();
     // Access to raw data that will be loaded as scalar_v
     size_t n_float_pnt = planes_hor.points.size() * (planes_hor.points.front().n_elemts() + padding);
     size_t offset  = planes_hor.points.front().n_elemts() + padding;
+    size_t n_loops = n_float_pnt / (3*offset);
+    #ifdef DEBUG
     // Process 3 geometrical coordinates
     if (n_float_pnt % (3*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
-    size_t n_loops = n_float_pnt / (3*offset);
+    #endif
+
+    auto pl_normals_ptr = const_cast<const Scalar*>(planes_hor.normals.front().data());
+    auto pl_points_ptr  = const_cast<const Scalar*>(planes_hor.points.front().data());
 
     #ifdef DEBUG 
     auto t1 = clock::now();
     #endif
+    for (size_t i = 0; i < n_loops; i++) {
+      // Allow return value to be clobbered in memory
+      benchmark::DoNotOptimize(
+        vc_intersect_horiz<Scalar_v, const Scalar*>(ray_hor, pl_normals_ptr, pl_points_ptr, offset)
+      );
+      // Prevent compiler from optimizing away the loop
+      benchmark::ClobberMemory();
 
-    for (size_t nt = 0; nt < nTests; ++nt) {
-        auto pl_normals_ptr = const_cast<const Scalar*>(planes_hor.normals.front().data());
-        auto pl_points_ptr  = const_cast<const Scalar*>(planes_hor.points.front().data());
-
-        for (size_t i = 0; i < n_loops; i++) {
-          // Allow return value to be clobbered in memory
-          benchmark::DoNotOptimize(
-            vc_intersect_horiz<Scalar_v, const Scalar*>(ray_hor, pl_normals_ptr, pl_points_ptr, offset)
-          );
-          pl_normals_ptr += 3 * offset;
-          pl_points_ptr  += 3 * offset;
-        }
+      pl_normals_ptr += 3 * offset;
+      pl_normals_ptr += 3 * offset;
     }
-    // Prevent compiler from optimizing away the loop
-    benchmark::ClobberMemory();
 
     #ifdef DEBUG 
     auto t2 = clock::now();
@@ -387,29 +406,90 @@ BENCHMARK_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
     std::cout << "Eigen 4D (w vec): " << duration.count() << "ms\n";
     #endif
   }
+  
 }
 
 //
 // Use a horizontal vectorization and data set, save the results in a container
 //
-BENCHMARK_F(HorizSetup, intersectVcHoriz_wres)(benchmark::State& state) {
-  
+BENCHMARK_DEFINE_F(HorizSetup, intersectVcHoriz_wres)(benchmark::State& state) {
   aligned::vector<intersection<Scalar_v, Vector3<Scalar_v>>> results;
-  results.reserve(planes_hor.points.size() * planes_hor.points.front().n_elemts()/Scalar_v::Size);
+  if (state.thread_index == 0) {
+    results.reserve(planes_hor.points.size() * planes_hor.points.front().n_elemts()/Scalar_v::Size);
+  }
 
+  //TODO: Make vector operations threadsafe
   for (auto _: state) {
-    auto padding = planes_hor.points.front().padding();
+    size_t padding = planes_hor.points.front().padding();
     // Allow vector data to be clobbered in memory
     benchmark::DoNotOptimize(results.data());
 
-    for (size_t nt = 0; nt < nTests; ++nt) {
-        vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray_hor, planes_hor, results, padding);
-        results.clear();
-    }
+    vc_intersect_horiz<Scalar_v, vector_v::obj_type>(ray_hor, planes_hor, results, padding);
+
     // Prevent compiler from optimizing away the loop
     benchmark::ClobberMemory();
+    //TODO: threadsafety
+    results.clear();
   }
 }
+
+BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D)
+  ->Name("Eigen4D")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(nThreads)
+  //->MeasureProcessCPUTime()
+  ->ThreadPerCpu();
+
+BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D_wres)
+  ->Name("Eigen4D_wres")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(nThreads)
+  ->ThreadPerCpu();
+
+BENCHMARK_REGISTER_F(VertSetup, intersectVcVert)
+  ->Name("VcVert")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(nThreads)
+  ->ThreadPerCpu();
+
+BENCHMARK_REGISTER_F(VertSetup, intersectVcVert_wres)
+  ->Name("VcVert_wres")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(nThreads)
+  ->ThreadPerCpu();
+
+BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid)
+  ->Name("VcHybrid")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(nThreads)
+  ->ThreadPerCpu();
+
+BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid_wres)
+  ->Name("VcHybrid_wres")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(nThreads)
+  ->ThreadPerCpu();
+
+BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
+  ->Name("VcHoriz")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(2);
+  ->ThreadPerCpu();
+
+BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz_wres)
+  ->Name("VcHoriz_wres")
+  ->Iterations(gbench_test_itrs)
+  //->Unit(benchmark::kMillisecond)
+  //->Threads(nThreads)
+  ->ThreadPerCpu();
+
 BENCHMARK_MAIN();
 
 } // namespace g_bench
