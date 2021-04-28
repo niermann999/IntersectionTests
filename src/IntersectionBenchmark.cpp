@@ -89,9 +89,9 @@ class VertSetup : public benchmark::Fixture {
       ray_dir   = Vector4_s::Random();
       ray_point = Vector4_s::Random();
 
-      pl_normals.reserve(nSurfaces);
-      pl_points.reserve(nSurfaces);
-      for (size_t i = 0; i < nSurfaces; i++) {
+      pl_normals.reserve(state.range(0));
+      pl_points.reserve(state.range(0));
+      for (size_t i = 0; i < state.range(0); i++) {
         pl_normals.push_back({.obj = vector_s::obj_type::Random()});
         pl_points.push_back( {.obj = vector_s::obj_type::Random()});
       }
@@ -140,9 +140,9 @@ class HybridSetup : public benchmark::Fixture {
       if (state.thread_index != 0) return;
 
       // AoS data
-      pl_normals_struct.reserve(nSurfaces);
-      pl_points_struct.reserve(nSurfaces);
-      for (size_t i = 0; i < nSurfaces; i++) {
+      pl_normals_struct.reserve(state.range(0));
+      pl_points_struct.reserve(state.range(0));
+      for (size_t i = 0; i < state.range(0); i++) {
         pl_normals_struct.push_back({.x=uni(), .y=uni(), .z=uni()});
         pl_points_struct.push_back( {.x=uni(), .y=uni(), .z=uni()});
       }
@@ -196,9 +196,9 @@ class HorizSetup : public benchmark::Fixture {
       ray_point_hor = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
 
       // need 3 vc vectors every "vector-reg. width" of surfaces (can compute "vector-reg. width" surfaces at the same time)
-      pl_normals_hor.reserve(3* nSurfaces/Scalar_v::Size + 1);
-      pl_points_hor.reserve(3* nSurfaces/Scalar_v::Size + 1);
-      for (size_t s = 0; s < nSurfaces/Scalar_v::Size; s++) {
+      pl_normals_hor.reserve(3* state.range(0)/Scalar_v::Size + 1);
+      pl_points_hor.reserve(3* state.range(0)/Scalar_v::Size + 1);
+      for (size_t s = 0; s < state.range(0)/Scalar_v::Size; s++) {
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //x
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //y
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //z
@@ -208,7 +208,7 @@ class HorizSetup : public benchmark::Fixture {
         pl_points_hor.push_back({.obj = vector_v::obj_type::Random()});
       }
       // padding at the end of data container needed (just add one more calculation for simplicity)
-      if (nSurfaces/Scalar_v::Size != 0) {
+      if (state.range(0)/Scalar_v::Size != 0) {
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //x
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //y
         pl_normals_hor.push_back({.obj = vector_v::obj_type::Random()}); //z
@@ -242,7 +242,7 @@ class HorizSetup : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(VertSetup, intersectEigen4D)(benchmark::State& state) {
 
   for (auto _: state) {
-    for (size_t i = 0; i < nSurfaces; i++) {
+    for (size_t i = 0; i < state.range(0); i++) {
       // Allow return value to be clobbered in memory
       benchmark::DoNotOptimize(
         eig_intersect_4D(ray, planes.normals[i].obj, planes.points[i].obj)
@@ -281,7 +281,7 @@ BENCHMARK_DEFINE_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
 BENCHMARK_DEFINE_F(VertSetup, intersectVcVert)(benchmark::State& state) {
 
   for (auto _: state) {
-    for (size_t i = 0; i < nSurfaces; i++) {
+    for (size_t i = 0; i < state.range(0); i++) {
       // Allow return value to be clobbered in memory
       benchmark::DoNotOptimize(
         vc_intersect_vert<Scalar_v, vector_s>(ray, planes.normals[i].obj, planes.points[i].obj)
@@ -434,14 +434,15 @@ BENCHMARK_DEFINE_F(HorizSetup, intersectVcHoriz_wres)(benchmark::State& state) {
 }
 
 BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("Eigen4D")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
   //->Threads(nThreads)
-  //->MeasureProcessCPUTime()
   ->ThreadPerCpu();
 
 BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D_wres)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("Eigen4D_wres")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
@@ -449,6 +450,7 @@ BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D_wres)
   ->ThreadPerCpu();
 
 BENCHMARK_REGISTER_F(VertSetup, intersectVcVert)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcVert")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
@@ -456,6 +458,7 @@ BENCHMARK_REGISTER_F(VertSetup, intersectVcVert)
   ->ThreadPerCpu();
 
 BENCHMARK_REGISTER_F(VertSetup, intersectVcVert_wres)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcVert_wres")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
@@ -463,6 +466,7 @@ BENCHMARK_REGISTER_F(VertSetup, intersectVcVert_wres)
   ->ThreadPerCpu();
 
 BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHybrid")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
@@ -470,6 +474,7 @@ BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid)
   ->ThreadPerCpu();
 
 BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid_wres)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHybrid_wres")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
@@ -477,6 +482,7 @@ BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid_wres)
   ->ThreadPerCpu();
 
 BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHoriz")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
@@ -484,6 +490,7 @@ BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
   ->ThreadPerCpu();
 
 BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz_wres)
+  ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHoriz_wres")
   ->Iterations(gbench_test_itrs)
   //->Unit(benchmark::kMillisecond)
