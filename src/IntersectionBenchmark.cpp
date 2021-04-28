@@ -28,9 +28,15 @@ namespace vec_intr {
 
 namespace g_bench {
 
+// Iterations of a benchmark
 constexpr size_t gbench_test_itrs = 10000;
+// Repetitions of a benchmark
+constexpr size_t gbench_test_repts = 10;
+// Number of rand. gen. surfaces to intersect
 constexpr size_t nSurfaces = 132;
+#ifdef DEBUG
 constexpr size_t nThreads  = 1;
+#endif
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types
 static_assert(data_trait<Vector4_s>::is_vec_layout, "Input type has non-compatible memory layout for vectorization");
@@ -437,65 +443,97 @@ BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("Eigen4D")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(nThreads)
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D_wres)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("Eigen4D_wres")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(nThreads)
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_REGISTER_F(VertSetup, intersectVcVert)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcVert")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(nThreads)
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_REGISTER_F(VertSetup, intersectVcVert_wres)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcVert_wres")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(nThreads)
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHybrid")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(nThreads)
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid_wres)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHybrid_wres")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(nThreads)
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHoriz")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(2);
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz_wres)
   ->DenseRange(0, 10*nSurfaces, nSurfaces)
   ->Name("VcHoriz_wres")
   ->Iterations(gbench_test_itrs)
-  //->Unit(benchmark::kMillisecond)
-  //->Threads(nThreads)
+  ->Repetitions(gbench_test_repts)
+  ->DisplayAggregatesOnly(true)
+  #ifdef DEBUG
+  ->Threads(nThreads);
+  #else
   ->ThreadPerCpu();
+  #endif
 
 BENCHMARK_MAIN();
 
