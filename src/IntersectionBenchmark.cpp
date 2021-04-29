@@ -31,9 +31,10 @@ namespace g_bench {
 // Iterations of a benchmark
 constexpr size_t gbench_test_itrs = 10000;
 // Repetitions of a benchmark
-constexpr size_t gbench_test_repts = 10;
+constexpr size_t gbench_test_repts = 3;
 // Number of rand. gen. surfaces to intersect
-constexpr size_t nSurfaces = 132;
+constexpr size_t surf_step    = 4;
+constexpr size_t n_surf_steps = 500;
 #ifdef DEBUG
 constexpr size_t nThreads  = 1;
 #endif
@@ -440,7 +441,7 @@ BENCHMARK_DEFINE_F(HorizSetup, intersectVcHoriz_wres)(benchmark::State& state) {
 }
 
 BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("Eigen4D")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
@@ -452,7 +453,7 @@ BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D)
   #endif
 
 BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D_wres)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("Eigen4D_wres")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
@@ -464,7 +465,7 @@ BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D_wres)
   #endif
 
 BENCHMARK_REGISTER_F(VertSetup, intersectVcVert)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("VcVert")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
@@ -476,7 +477,7 @@ BENCHMARK_REGISTER_F(VertSetup, intersectVcVert)
   #endif
 
 BENCHMARK_REGISTER_F(VertSetup, intersectVcVert_wres)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("VcVert_wres")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
@@ -488,7 +489,7 @@ BENCHMARK_REGISTER_F(VertSetup, intersectVcVert_wres)
   #endif
 
 BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("VcHybrid")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
@@ -500,7 +501,7 @@ BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid)
   #endif
 
 BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid_wres)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("VcHybrid_wres")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
@@ -512,7 +513,7 @@ BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid_wres)
   #endif
 
 BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("VcHoriz")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
@@ -524,7 +525,7 @@ BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
   #endif
 
 BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz_wres)
-  ->DenseRange(0, 10*nSurfaces, nSurfaces)
+  ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   ->Name("VcHoriz_wres")
   ->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
