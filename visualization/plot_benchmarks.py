@@ -34,16 +34,24 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+import os
 import pandas as pd
 
 
 if __name__ == "__main__":
+
+    if not os.path.exists('./benchmark_plots/'):
+        os.makedirs('./benchmark_plots/')
+    if not os.path.exists('./aggregate_plots/'):
+        os.makedirs('./aggregate_plots/')
 
     matplotlib.rcParams.update({'font.size': 8})
 
     #
     # Get input data
     #
+    print("Preparing input data...")
+
     input_file = json.load(open('./Eigen_vs_Vc_bench.json'))
     data = pd.DataFrame(input_file["benchmarks"])
 
@@ -123,16 +131,17 @@ if __name__ == "__main__":
         handles.append(patch)
         axes[1].legend(handles=handles)
 
-        plot_file_name = "./BenchmarkData_"+name+".png"
+        plot_file_name = "./benchmark_plots/BenchmarkData_"+name+".png"
         fig.savefig(plot_file_name, dpi=200)
         plt.close()
 
     # Go through each method and number of surfaces and plot the timing for the repetitions, as well as the timing distribution
-    """for method, surfs in plot_dict.items():
+    print("Plotting benchmarks...")
+    for method, surfs in plot_dict.items():
         for n_surf in surfs:
             name = method + "-" + n_surf
             plot_data = data[(data.name == name) & (data.nSurfaces == n_surf)]
-            create_data_plots(plot_data, method, n_surf)"""
+            create_data_plots(plot_data, method, n_surf)
 
 
     #
@@ -148,6 +157,8 @@ if __name__ == "__main__":
                         xytext=(0, 3),  # 3 points vertical offset
                         textcoords="offset points",
                         ha='center', va='bottom')"""
+
+    print("Plotting aggregate data...")
 
     # Keep the mean, median, stddev
     data_dict = {}
@@ -188,7 +199,7 @@ if __name__ == "__main__":
     axes[1].set_title("Median of exec. Time vs. no. Surfaces (with vector container)")
     axes[1].legend()
 
-    plot_file_name = "./Benchmark_scaling.png"
+    plot_file_name = "./aggregate_plots/Benchmark_scaling.png"
     fig.savefig(plot_file_name, dpi=200)
     plt.close()
 
@@ -205,8 +216,6 @@ if __name__ == "__main__":
     data_frame['VcHybrid_wres_median'] = np.reciprocal(data_frame['VcHybrid_wres_median'])
     data_frame['VcHoriz_wres_median'] = np.reciprocal(data_frame['VcHoriz_wres_median'])
 
-    print(data_frame)
-
     fig, axes = plt.subplots(nrows=2, ncols=1)
     fig.subplots_adjust(hspace=.3)
     data_frame.plot(ax=axes[0], x='Eigen4D_surfs', y=['Eigen4D_median','VcVert_median','VcHybrid_median','VcHoriz_median'], label=['Eigen4D','VcVert','VcHybrid','VcHoriz'], sharex=True)
@@ -220,7 +229,7 @@ if __name__ == "__main__":
     axes[1].set_title("Speedup vs. no. Surfaces (with vector container)")
     axes[1].legend()
 
-    plot_file_name = "./Benchmark_speedup.png"
+    plot_file_name = "./aggregate_plots/Benchmark_speedup.png"
     fig.savefig(plot_file_name, dpi=200)
     plt.close()
 
