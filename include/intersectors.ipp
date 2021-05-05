@@ -4,39 +4,39 @@
 namespace vec_intr {
 
 
-inline auto eig_intersect_4D(ray_data<Vector4_s> &ray,
-                             Vector4_s &planeNormal,
-                             Vector4_s &planePoint) {
-  Scalar coeff = (planePoint - ray.point).dot(planeNormal);
-  Scalar denom = ray.direction.dot(planeNormal);
-  if (denom == 0) return intersection<Scalar, Vector4_s>{};
+template<typename vector_s>
+inline auto eig_intersect_4D(ray_data<vector_s>& ray,
+                             plane_data<vector_s> &plane) {
+
+  using scalar_t = typename vector_s::scalar_type;
+  using vector_t = typename vector_s::type;
+
+  Scalar coeff = (plane.points() - ray.point()).dot(plane.normals());
+  Scalar denom = ray.direction().dot(plane.normals());
+  if (denom == 0) return intersection<scalar_t, vector_t>{};
   coeff /= denom;
 
-  intersection<Scalar, Vector4_s> results = {.path = Vector4_s(ray.point + coeff*ray.direction),
-                                             .dist = coeff};       
+  intersection<scalar_t, vector_t> results = {.path = vector_t(ray.point() + coeff*ray.direction()),
+                                              .dist = coeff};       
   return std::move(results);
 }
 
 
-template<typename vector_t>
-inline void eig_intersect_4D(ray_data<Vector4_s> &ray,
-                             plane_data<aligned::vector<vector_t>> &planes,
-                             aligned::vector<intersection<Scalar, Vector4_s>> &results) {
-  #ifdef DEBUG
-  //TODO: make constexpr
-  if (planes.points.size() != planes.normals.size()) {
-    std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
-    return;
-  }
-  #endif
+template<typename vector_s>
+inline void eig_intersect_4D(ray_data<vector_s> &ray,
+                             aligned::vector<plane_data<vector_s> > &planes,
+                             aligned::vector<intersection<typename vector_s::scalar_type, typename vector_s::type> > &results) {
 
-  for (size_t i = 0; i < planes.points.size(); i++) {
-    Scalar coeff = (planes.points[i].obj - ray.point).dot(planes.normals[i].obj);
-    Scalar denom = ray.direction.dot(planes.normals[i].obj);
+  using scalar_t = typename vector_s::scalar_type;
+  using vector_t = typename vector_s::type;
+
+  for (auto &plane : planes) {
+    scalar_t coeff = (plane.points()- ray.point()).dot(plane.normals());
+    scalar_t denom = ray.direction().dot(plane.normals());
     if (denom == 0) return;
     coeff /= denom;
 
-    results.emplace_back(intersection<Scalar, Vector4_s>{.path = Vector4_s(ray.point + coeff*ray.direction), .dist = coeff});
+    results.emplace_back(intersection<scalar_t, vector_t>{.path = vector_t(ray.point() + coeff*ray.direction()), .dist = coeff});
   }
 }
 
@@ -70,29 +70,22 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
 // Vc
 //-----------------------------------------------------------------------
 
-template<typename vector_v, typename vector_s>
-inline void vc_intersect_vert(ray_data<Vector4_s> &ray,
-                              plane_data<aligned::vector<vector_s>> &planes,
-                              aligned::vector<intersection<typename vector_v::value_type, Vc::SimdArray<typename vector_v::value_type, 4>>> &results) {
-  using scalar_t = typename vector_v::value_type;
-  using simd_vec_t = Vc::SimdArray<scalar_t, 4>;
+template<typename vector_s>
+inline void vc_intersect_vert(ray_data<vector_s> &ray,
+                              aligned::vector<plane_data<vector_s> > &planes,
+                              aligned::vector<intersection<typename vector_s::scalar_type, Vc::SimdArray<typename vector_s::scalar_type, 4> > > &results) {
 
-  #ifdef DEBUG
-  //TODO: make constexpr
-  if (planes.points.size() != planes.normals.size()) {
-    std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
-    return;
-  }
-  #endif
+  using scalar_t = typename vector_s::scalar_type;
+  using simd_vec_t = Vc::SimdArray<scalar_t, 4>;
 
   auto ray_dir   = simd_vec_t(ray.direction.data());
   auto ray_point = simd_vec_t(ray.point.data());
 
   simd_vec_t plane_normal, plane_point;
 
-  for (size_t i = 0; i < planes.normals.size(); i++) {
-    plane_normal = simd_vec_t(planes.normals[i].data());
-    plane_point  = simd_vec_t(planes.points[i].data());
+  for (auto &plane : planes) {
+    plane_normal = simd_vec_t(plane.normals.data());
+    plane_point  = simd_vec_t(plane.points.data());
 
     scalar_t coeff = ((plane_point - ray_point) * plane_normal).sum();
     scalar_t denom = (ray_dir * plane_normal).sum();
@@ -106,18 +99,18 @@ inline void vc_intersect_vert(ray_data<Vector4_s> &ray,
 }
 
 
-template<typename vector_v, typename vector_s>
-inline auto vc_intersect_vert(ray_data<Vector4_s> &ray,
-                              Vector4_s &planeNormal,
-                              Vector4_s &planePoint) {
-  using scalar_t = typename vector_v::value_type;
+template<typename vector_s>
+inline auto vc_intersect_vert(ray_data<vector_s> &ray,
+                              plane_data<vector_s> &plane) {
+
+  using scalar_t = typename vector_s::scalar_type;
   using simd_vec_t = Vc::SimdArray<scalar_t, 4>;
 
   auto ray_dir   = simd_vec_t(ray.direction.data());
   auto ray_point = simd_vec_t(ray.point.data());
 
-  simd_vec_t  plane_normal = simd_vec_t(planeNormal.data());
-  simd_vec_t  plane_point  = simd_vec_t(planePoint.data());
+  simd_vec_t  plane_normal = simd_vec_t(plane.normals.data());
+  simd_vec_t  plane_point  = simd_vec_t(plane.points.data());
 
   scalar_t coeff = ((plane_point - ray_point) * plane_normal).sum();
   scalar_t denom = (ray_dir * plane_normal).sum();
@@ -132,12 +125,14 @@ inline auto vc_intersect_vert(ray_data<Vector4_s> &ray,
 
 
 
-template<typename scalar_v>
-inline void vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
-                                plane_data<aligned::vector<Vector3<typename scalar_v::value_type>>> &planes,
-                                aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results) {
+template<typename vector_v>
+inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
+                                plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
+                                aligned::vector<intersection<typename vector_v::vec_type, typename vector_v::type> > &results) {
 
-  using scalar_t = typename scalar_v::value_type;
+  using scalar_t = typename vector_v::scalar_type;
+  using scalar_v = typename vector_v::vec_type;
+  using output_t = typename vector_v::type;
 
   #ifdef DEBUG
   //TODO: make constexpr
@@ -157,152 +152,117 @@ inline void vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
     scalar_v pns_y = planes.normals[i][&Vector3<scalar_t>::y];
     scalar_v pns_z = planes.normals[i][&Vector3<scalar_t>::z];
 
-    scalar_v denoms (ray.direction.x * pns_x);
-    scalar_v coeffs ((pps_x - ray.point.x) * pns_x);
+    scalar_v denoms (ray.direction().x * pns_x);
+    scalar_v coeffs ((pps_x - ray.point().x) * pns_x);
 
-    denoms = Vc::fma(ray.direction.y, pns_y, denoms);
-    coeffs = Vc::fma((pps_y - ray.point.y), pns_y, coeffs);
+    denoms = Vc::fma(ray.direction().y, pns_y, denoms);
+    coeffs = Vc::fma((pps_y - ray.point().y), pns_y, coeffs);
 
-    denoms = Vc::fma(ray.direction.z, pns_z, denoms);
-    coeffs = Vc::fma((pps_z - ray.point.z), pns_z, coeffs);
+    denoms = Vc::fma(ray.direction().z, pns_z, denoms);
+    coeffs = Vc::fma((pps_z - ray.point().z), pns_z, coeffs);
     coeffs /= denoms;
 
     auto check_sum = coeffs.sum();
     if (std::isnan(check_sum) || std::isinf(check_sum)) return;
 
-    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
-                              .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
-                              .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
+    output_t path = {.x = Vc::fma(coeffs, ray.direction().x, ray.point().x), 
+                                    .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
+                                    .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
-    results.emplace_back(intersection<scalar_v, Vector3<scalar_v>>{.path = path, .dist = coeffs});
+    results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
   }
 }
 
 
-template<typename scalar_v>
-inline auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
-                                plane_data<Vector3<scalar_v>> &planes) {
+template<typename vector_v>
+inline auto vc_intersect_hybrid(ray_data<vector_v> &ray,
+                                plane_data<vector_v> &planes) {
+                                    
+  using scalar_v = typename vector_v::vec_type;
+  using output_t = typename vector_v::type;
 
-  scalar_v denoms (ray.direction.x * planes.normals.x);
-  scalar_v coeffs ((planes.points.x - ray.point.x) * planes.normals.x);
+  scalar_v denoms (ray.direction().x * planes.normals().x);
+  scalar_v coeffs ((planes.points().x - ray.point().x) * planes.normals().x);
 
-  denoms = Vc::fma(ray.direction.y, planes.normals.y, denoms);
-  coeffs = Vc::fma((planes.points.y - ray.point.y), planes.normals.y, coeffs);
+  denoms = Vc::fma(ray.direction().y, planes.normals().y, denoms);
+  coeffs = Vc::fma((planes.points().y - ray.point().y), planes.normals().y, coeffs);
 
-  denoms = Vc::fma(ray.direction.z, planes.normals.z, denoms);
-  coeffs = Vc::fma((planes.points.z - ray.point.z), planes.normals.z, coeffs);
+  denoms = Vc::fma(ray.direction().z, planes.normals().z, denoms);
+  coeffs = Vc::fma((planes.points().z - ray.point().z), planes.normals().z, coeffs);
   coeffs /= denoms;
 
   auto check_sum = coeffs.sum();
-  if (std::isnan(check_sum) || std::isinf(check_sum)) return intersection<scalar_v, Vector3<scalar_v>>{};
+  if (std::isnan(check_sum) || std::isinf(check_sum)) return intersection<scalar_v, Vector3<scalar_v> >{};
 
-  Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
-                            .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
-                            .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
+  Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction().x, ray.point().x), 
+                            .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
+                            .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
-  intersection<scalar_v, Vector3<scalar_v>> results = {.path = path, .dist = coeffs};
+  intersection<scalar_v, Vector3<scalar_v> > results = {.path = path, .dist = coeffs};
   return std::move(results);
 }
 
-template<typename scalar_v, typename vector_s, size_t kDIM = 3>
-inline void vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
-                               plane_data<aligned::vector<MatrixV<vector_s>>> &planes,
-                               aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results,
-                               size_t padding = 0) {
-  #ifdef DEBUG
-  //TODO: make constexpr
-  if (planes.points.size() != planes.normals.size()) {
-    std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
-    return;
-  }
-  #endif
 
-  // Access to raw data that will be loaded as scalar_v
-  size_t n_float_pnt = planes.points.size() * (planes.points.front().n_elemts() + padding);
-  size_t offset  = planes.points.front().n_elemts() + padding;
-  // Process 3 geometrical coordinates
-  if (n_float_pnt % (kDIM*offset) != 0) std::cout << "Warning: Input container size is not a multiple simd vector size." << std::endl;
-  size_t n_loops = n_float_pnt / (kDIM*offset);
-  if (results.capacity() < n_loops) results.reserve(n_loops);
+template<typename vector_v>
+inline void vc_intersect_horiz(ray_data<vector_v> &ray,
+                               aligned::vector<plane_data<vector_v> > &planes,
+                               aligned::vector<intersection<typename vector_v::vec_type, typename vector_v::type> > &results) {
 
-  auto pp_ptr = planes.points.front().data();
-  auto pn_ptr = planes.normals.front().data();
-  scalar_v planePoint (pp_ptr);
-  scalar_v planeNormal(pn_ptr);
-  for (size_t i = 0; i < n_loops; i++) {
+  using scalar_v = typename vector_v::vec_type;
+  using output_t = typename vector_v::type;
 
-    scalar_v denoms(ray.direction.x * planeNormal);
-    scalar_v coeffs((planePoint - ray.point.x) * planeNormal);
-    planeNormal.load(pn_ptr += offset, Vc::Streaming);
-    planePoint.load( pp_ptr += offset, Vc::Streaming);
+  for (auto &plane : planes) {
+    scalar_v denoms(ray.direction().x * plane.normals().x);
+    scalar_v coeffs((plane.points().x - ray.point().x) * plane.normals().x);
 
-    denoms = Vc::fma(ray.direction.y, planeNormal, denoms);
-    coeffs = Vc::fma((planePoint - ray.point.y), planeNormal, coeffs);
-    planeNormal.load(pn_ptr += offset, Vc::Streaming);
-    planePoint.load( pp_ptr += offset, Vc::Streaming);
+    denoms = Vc::fma(ray.direction().y, plane.normals().y, denoms);
+    coeffs = Vc::fma((plane.points().y - ray.point().y), plane.normals().y, coeffs);
 
-    denoms = Vc::fma(ray.direction.z, planeNormal, denoms);
-    coeffs = Vc::fma((planePoint - ray.point.z), planeNormal, coeffs);
-    planeNormal.load(pn_ptr += offset, Vc::Streaming);
-    planePoint.load( pp_ptr += offset, Vc::Streaming);
+    denoms = Vc::fma(ray.direction().z, plane.normals().z, denoms);
+    coeffs = Vc::fma((plane.points().z - ray.point().z), plane.normals().z, coeffs);
     coeffs /= denoms;
 
     auto check_sum = coeffs.sum();
     if (std::isnan(check_sum) || std::isinf(check_sum)) return;
 
 
-    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
-                              .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
-                              .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
+    output_t path = {.x = Vc::fma(coeffs, ray.direction().x, ray.point().x), 
+                     .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
+                     .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
-    results.emplace_back(intersection<scalar_v, Vector3<scalar_v>>{.path = path, .dist = coeffs});
+    results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
   }
 }
 
 
-template<typename scalar_v, typename data_ptr_t, size_t kDIM = 3>
-inline auto vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
-                               data_ptr_t pl_normals_ptr,
-                               data_ptr_t pl_points_ptr,
-                               size_t offset) {
-    #ifdef DEBUG
-    if (pl_normals_ptr == nullptr || pl_points_ptr == nullptr) {
-      std::cerr << "Passed invalid data collection pointer to intersection" << std::endl;
-      return intersection<scalar_v, Vector3<scalar_v>>{};
-    }
-    #endif
+template<typename vector_v>
+inline auto vc_intersect_horiz(ray_data<vector_v> &ray,
+                               plane_data<vector_v> &plane) {
 
-    scalar_v planePoint (pl_points_ptr);
-    scalar_v planeNormal(pl_normals_ptr);
+    using scalar_v = typename vector_v::vec_type;
+    using output_t = typename vector_v::type;
 
-    scalar_v denoms(ray.direction.x * planeNormal);
-    scalar_v coeffs((planePoint - ray.point.x) * planeNormal);
-    planeNormal.load(pl_normals_ptr += offset, Vc::Streaming);
-    planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
+    scalar_v denoms(ray.direction().x * plane.normals().x);
+    scalar_v coeffs((plane.points().x - ray.point().x) * plane.normals().x);
 
-    denoms = Vc::fma(ray.direction.y, planeNormal, denoms);
-    coeffs = Vc::fma((planePoint - ray.point.y), planeNormal, coeffs);
-    planeNormal.load(pl_normals_ptr += offset, Vc::Streaming);
-    planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
+    denoms = Vc::fma(ray.direction().y, plane.normals().y, denoms);
+    coeffs = Vc::fma((plane.points().y - ray.point().y), plane.normals().y, coeffs);
 
-    denoms = Vc::fma(ray.direction.z, planeNormal, denoms);
-    coeffs = Vc::fma((planePoint - ray.point.z), planeNormal, coeffs);
-    planeNormal.load(pl_normals_ptr += offset, Vc::Streaming);
-    planePoint.load( pl_points_ptr  += offset, Vc::Streaming);
+    denoms = Vc::fma(ray.direction().z, plane.normals().z, denoms);
+    coeffs = Vc::fma((plane.points().z - ray.point().z), plane.normals().z, coeffs);
     coeffs /= denoms;
-
+    
     auto check_sum = coeffs.sum();
     if (std::isnan(check_sum) || std::isinf(check_sum)) {
-      return intersection<scalar_v, Vector3<scalar_v>> {};
+      return intersection<Scalar_v, typename vector_v::type> {};
     }
 
-    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction.x, ray.point.x), 
-                              .y = Vc::fma(coeffs, ray.direction.y, ray.point.y), 
-                              .z = Vc::fma(coeffs, ray.direction.z, ray.point.z)};
+    Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction().x, ray.point().x), 
+                              .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
+                              .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
-    intersection<scalar_v, Vector3<scalar_v>> results = {.path = path, .dist = coeffs};
+    intersection<scalar_v, output_t> results = {.path = path, .dist = coeffs};
     return std::move(results);
 }
-
 
 } // namespace vec_intr

@@ -10,16 +10,16 @@ namespace vec_intr {
 // Eigen
 //-----------------------------------------------------------------------
 // Naive Eigen implementation
-inline auto eig_intersect_4D(ray_data<Vector4_s>& ray,
-                             Vector4_s& planeNormal,
-                             Vector4_s& planePoint);
+template<typename vector_s>
+inline auto eig_intersect_4D(ray_data<vector_s>& ray,
+                             plane_data<vector_s> &plane);
 
 
 // Process all intersections at once
-template<typename vector_t>
-inline void eig_intersect_4D(ray_data<Vector4_s>& ray,
-                             plane_data<aligned::vector<vector_t>> &planes,
-                             aligned::vector<intersection<Scalar, Vector4_s>> &results);
+template<typename vector_s>
+inline void eig_intersect_4D(ray_data<vector_s> &ray,
+                             aligned::vector<plane_data<vector_s> > &planes,
+                             aligned::vector<intersection<typename vector_s::scalar_type, typename vector_s::type> > &results);
 
 
 // Pass data in one big matrix and try to autovectorize
@@ -34,49 +34,40 @@ auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
 //-----------------------------------------------------------------------
 
 // Vertical vectorization using simd array class
-template<typename vector_v, typename vector_s>
-inline void vc_intersect_vert(ray_data<Vector4_s> &ray,
-                              plane_data<aligned::vector<vector_s>> &planes,
-                              aligned::vector<intersection<typename vector_v::value_type, Vc::SimdArray<typename vector_v::value_type, 4>>> &results);
+template<typename vector_s>
+inline void vc_intersect_vert(ray_data<vector_s> &ray,
+                              aligned::vector<plane_data<vector_s> > &planes,
+                              aligned::vector<intersection<typename vector_s::scalar_type, Vc::SimdArray<typename vector_s::scalar_type, 4> > > &results);
 
 
-template<typename vector_v, typename vector_s>
-inline auto vc_intersect_vert(ray_data<Vector4_s> &ray,
-                              Vector4_s &planeNormal,
-                              Vector4_s &planePoint);
+template<typename vector_s>
+inline auto vc_intersect_vert(ray_data<vector_s> &ray,
+                              plane_data<vector_s> &planes);
 
 
 // Vertical vectorization on data as it is, using interleaved memory wrapper
-template<typename scalar_v>
-inline void vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
-                                plane_data<aligned::vector<Vector3<typename scalar_v::value_type>>> &planes,
-                                aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results);
+template<typename vector_v>
+inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
+                                plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
+                                aligned::vector<intersection<typename vector_v::vec_type, typename vector_v::type> > &results);
 
 
-template<typename scalar_v>
-inline auto vc_intersect_hybrid(ray_data<Vector3<scalar_v>> &ray,
-                                plane_data<Vector3<scalar_v>> &planes);
+template<typename vector_v>
+inline auto vc_intersect_hybrid(ray_data<vector_v> &ray,
+                                plane_data<vector_v> &planes);
 
 
-
-template<typename scalar_v, typename vector_s, size_t kDIM = 3>
-inline void vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
-                               plane_data<aligned::vector<MatrixV<vector_s>>> &planes,
-                               aligned::vector<intersection<scalar_v, Vector3<scalar_v>>> &results); 
-
-
-template<typename scalar_v, typename data_ptr_t, size_t kDIM = 3>
-inline auto vc_intersect_horiz(ray_data<Vector3<scalar_v>> &ray,
-                               data_ptr_t pl_normals_ptr,
-                               data_ptr_t pl_points_ptr,
-                               size_t offset); 
+// Horizontal vectorization on interleaved vectors
+template<typename vector_v>
+inline void vc_intersect_horiz(ray_data<vector_v> &ray,
+                               aligned::vector<plane_data<vector_v> > &planes,
+                               aligned::vector<intersection<typename vector_v::vec_type, typename vector_v::type> > &results);
 
 
-template<typename scalar_v,typename vector_v, size_t kDIM = 3>
-inline bool initialize_data_ptrs (Scalar **plane_normals,
-                                  Scalar **plane_points,
-                                  aligned::vector<vector_v> &normals_vec,
-                                  aligned::vector<vector_v> &points_vec); 
+template<typename vector_v>
+inline auto vc_intersect_horiz(ray_data<vector_v> &ray,
+                               plane_data<vector_v> &plane);
+
 } //namespace vec_intr
 
 #include <intersectors.ipp>
