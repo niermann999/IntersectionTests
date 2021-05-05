@@ -31,12 +31,12 @@ namespace g_bench {
 // Iterations of a benchmark
 //constexpr size_t gbench_test_itrs = 10000;
 // Repetitions of a benchmark
-constexpr size_t gbench_test_repts = 2;
+constexpr size_t gbench_test_repts = 50;
 // Number of rand. gen. surfaces to intersect
 //constexpr size_t surf_step    = 4;
 //constexpr size_t n_surf_steps = 500;
-constexpr size_t surf_step    = 10;
-constexpr size_t n_surf_steps = 10;
+constexpr size_t surf_step    = 5;
+constexpr size_t n_surf_steps = 100;
 #ifdef NO_MULTI_THREAD
 constexpr size_t nThreads  = 2;
 #endif
