@@ -64,4 +64,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_unittest(IntersectionTest IntersectionTests.cpp)
-add_benchmark(IntersectionBench IntersectionBenchmark.cpp)
+add_benchmark(EigenIntersection EigenBenchmark.cpp)
+add_benchmark(VcVertIntersection VcVertBenchmark.cpp)
+add_benchmark(VcHybridIntersection VcHybridBenchmark.cpp)
+add_benchmark(VcHorizIntersection VcHorizBenchmark.cpp)
