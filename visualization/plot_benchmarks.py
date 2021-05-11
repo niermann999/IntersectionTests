@@ -54,8 +54,8 @@ if __name__ == "__main__":
                 print('Failed to delete %s. Reason: %s' % (file_path, e))
 
     # Cleanout old plots
-    bench_path = Path('benchmark_plots')
-    aggr_path  = Path('aggregate_plots')
+    bench_path = Path('./benchmark_plots/')
+    aggr_path  = Path('./aggregate_plots/')
     if bench_path.exists() and bench_path.is_dir():
         delete_old(bench_path)
         delete_old(aggr_path)
@@ -70,9 +70,12 @@ if __name__ == "__main__":
     #
     print("Preparing input data...")
 
-    input_file = json.load(open('./Eigen_vs_Vc_bench.json'))
-    data = pd.DataFrame(input_file["benchmarks"])
+    data = pd.DataFrame(json.load(open('./Eigen_bench.json'))["benchmarks"])
+    data = data.append(pd.DataFrame(json.load(open('./VcVert_bench.json'))["benchmarks"]))
+    data = data.append(pd.DataFrame(json.load(open('./VcHybrid_bench.json'))["benchmarks"]))
+    data = data.append(pd.DataFrame(json.load(open('./VcHoriz_bench.json'))["benchmarks"]))
 
+    print(data)
     #prepare data for plots
 
     # Find max exec time to scale plots
@@ -189,6 +192,7 @@ if __name__ == "__main__":
             data_dict[method + "_stddev"].append(stddev)
             data_dict[method + "_surfs"].append(n_surf)
             
+    print(data_dict)
     data_frame = pd.DataFrame.from_dict(data_dict)
     data_frame = data_frame.assign(Eigen4D_surfs=data_frame.Eigen4D_surfs.astype(int)).sort_values(by=['Eigen4D_surfs'], ascending=True, inplace=False)
 

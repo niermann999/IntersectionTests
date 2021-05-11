@@ -88,8 +88,8 @@ BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
   //->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
   ->DisplayAggregatesOnly(true)
-  #ifdef NO_MULTI_THREAD
-  ->Threads(nThreads);
+  #ifdef MULTI_THREAD
+  ->Threads(MULTI_THREAD);
   #else
   ->ThreadPerCpu();
   #endif
@@ -100,8 +100,8 @@ BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz_wres)
   //->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
   ->DisplayAggregatesOnly(true)
-  #ifdef NO_MULTI_THREAD
-  ->Threads(nThreads);
+  #ifdef MULTI_THREAD
+  ->Threads(MULTI_THREAD);
   #else
   ->ThreadPerCpu();
   #endif

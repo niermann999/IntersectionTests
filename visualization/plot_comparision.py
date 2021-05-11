@@ -29,20 +29,20 @@ if __name__ == "__main__":
     eigen_median_sse_f  = 1.
     eigen_median_sse_d  = 1.
 
-    vert_median_avx_f   = 0.90244178
-    vert_median_avx_d   = 1.04607321
-    vert_median_sse_f   = 1.02844139
-    vert_median_sse_d   = 1.03390465
+    vert_median_avx_f   = 1.04410984
+    vert_median_avx_d   = 1.04979451
+    vert_median_sse_f   = 1.00783495
+    vert_median_sse_d   = 1.14216
 
-    hybrid_median_avx_f = 1.49827263
-    hybrid_median_avx_d = 1.3589161
-    hybrid_median_sse_f = 0.47665337
-    hybrid_median_sse_d = 0.37315663
+    hybrid_median_avx_f = 1.27176132
+    hybrid_median_avx_d = 1.22714358
+    hybrid_median_sse_f = 0.4074784
+    hybrid_median_sse_d = 0.35545977
 
-    horiz_median_avx_f  = 2.62233525
-    horiz_median_avx_d  = 1.67191108
-    horiz_median_sse_f  = 0.66469471
-    horiz_median_sse_d  = 0.39744582
+    horiz_median_avx_f  = 3.91132503
+    horiz_median_avx_d  = 2.32311258
+    horiz_median_sse_f  = 0.57658313
+    horiz_median_sse_d  = 0.39736983
 
     # std deviations
     eigen_stddev_avx_f  = 0
@@ -82,6 +82,17 @@ if __name__ == "__main__":
     horiz = np.round(horiz/eigen_median_sse_d, 1)
     horiz_err = np.round(np.array([horiz_stddev_sse_d,horiz_stddev_sse_f,horiz_stddev_avx_d,horiz_stddev_avx_f]), 1)
 
+    # Attach a text label above each bar in *rects*, displaying its height.
+    def autolabel(rects, axis):
+        for rect in rects:
+            height = rect.get_height()
+            axis.annotate('{}'.format(height),
+                        xy=(rect.get_x() + rect.get_width() / 2, height),
+                        xytext=(0, 3),  # 3 points vertical offset
+                        textcoords="offset points",
+                        ha='center', va='bottom')
+
+                        
 
     x = np.arange(len(labels))  # the label locations
     width = 0.15  # the width of the bars
@@ -99,10 +110,10 @@ if __name__ == "__main__":
     ax.set_xticklabels(labels)
     ax.legend()
 
-    #autolabel(bars_eigen, ax)
-    #autolabel(bars_AoS, ax)
-    #autolabel(bars_hybrid, ax)
-    #autolabel(bars_horiz, ax)
+    autolabel(bars_eigen, ax)
+    autolabel(bars_AoS, ax)
+    autolabel(bars_hybrid, ax)
+    autolabel(bars_horiz, ax)
 
     fig.tight_layout()
 

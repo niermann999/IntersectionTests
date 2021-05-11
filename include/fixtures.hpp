@@ -14,12 +14,12 @@ namespace g_bench {
 // Iterations of a benchmark
 //constexpr size_t gbench_test_itrs = 10000;
 // Repetitions of a benchmark
-constexpr size_t gbench_test_repts = 0;
+constexpr size_t gbench_test_repts = 10;
 // Number of rand. gen. surfaces to intersect
-constexpr size_t surf_step    = 132;
-constexpr size_t n_surf_steps = 1;
+constexpr size_t surf_step    = 10;
+constexpr size_t n_surf_steps = 10;
 #ifdef NO_MULTI_THREAD
-constexpr size_t nThreads  = 1;
+#define MULTI_THREAD 1
 #endif
 
 // Make sure the memory layout is compatible with Vc Vectors and set corresponding LA wrappers as types

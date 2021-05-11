@@ -124,7 +124,10 @@ inline auto vc_intersect_vert(ray_data<vector_s> &ray,
 }
 
 
-
+/*template<typename vector_v>
+inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
+                                plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
+                                std::array<intersection<typename vector_v::vec_type, typename vector_v::type>, 10> &results) {*/
 template<typename vector_v>
 inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
                                 plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
@@ -142,6 +145,7 @@ inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
   }
   #endif
 
+  //size_t i = 0;
   // Vector iterate
   for (Index_v i(scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(scalar_v::Size)) {
     scalar_v pps_x = planes.points[i][&Vector3<scalar_t>::x];
@@ -169,7 +173,10 @@ inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
                                     .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
                                     .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
-    results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
+    //results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
+    intersection<scalar_v, output_t> bla = {.path = path, .dist = coeffs};
+    results[0] = bla;
+    //i += 1;
   }
 }
 

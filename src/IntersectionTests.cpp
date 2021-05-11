@@ -270,7 +270,7 @@ template <unsigned int kPlanes> void intersectVcHybrid(ray_data<vector_v> &ray,
 // Use a gather on a structured data set then vectorize horizontaly 
 // and save the results in a container
 //
-template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<vector_v> &ray,
+/*template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<vector_v> &ray,
                                                            plane_data<aligned::vector<Vector3<Scalar> >> &planes) {
   using scalar_t = typename vector_v::scalar_type;
   using scalar_v = typename vector_v::vec_type;
@@ -295,7 +295,7 @@ template <unsigned int kPlanes> void intersectVcHybrid_res(ray_data<vector_v> &r
   check_sum = check_sum_v.sum();
   BOOST_CHECK(check_sum == 12);
   std::cout << "\tdone" << std::endl;
-}
+}*/
 
 //
 // Use a horizontal vectorization and data set
@@ -374,8 +374,8 @@ BOOST_AUTO_TEST_CASE(IntersectVcVert_res) {intersectVcVert_res<nSurfaces>(ray, p
 BOOST_AUTO_TEST_CASE(IntersectVcHybrid)     {intersectVcHybrid<nSurfaces>(ray_struct, 
                                                                           planes_struct);} 
                                                                           
-BOOST_AUTO_TEST_CASE(IntersectVcHybrid_res) {intersectVcHybrid_res<nSurfaces>(ray_struct, 
-                                                                              planes_struct);}
+/*BOOST_AUTO_TEST_CASE(IntersectVcHybrid_res) {intersectVcHybrid_res<nSurfaces>(ray_struct, 
+                                                                              planes_struct);}*/
 
 
 BOOST_AUTO_TEST_CASE(IntersectVcHoriz)    {intersectVcHoriz<nSurfaces>(ray_hor, 

@@ -51,6 +51,11 @@ inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
                                 plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
                                 aligned::vector<intersection<typename vector_v::vec_type, typename vector_v::type> > &results);
 
+/*template<typename vector_v>
+inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
+                                plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
+                                std::array<intersection<typename vector_v::vec_type, typename vector_v::type>, 10> &results);*/
+
 
 template<typename vector_v>
 inline auto vc_intersect_hybrid(ray_data<vector_v> &ray,

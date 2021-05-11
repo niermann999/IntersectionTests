@@ -57,6 +57,7 @@ BENCHMARK_DEFINE_F(HybridSetup, intersectVcHybrid_wres)(benchmark::State& state)
 
   aligned::vector<intersection<scalar_v, vector_t> > results;
   if (state.thread_index == 0) results.reserve(planes_struct.normals.size());
+  //std::array<intersection<scalar_v, vector_t>, 10> results;
 
   //TODO: Make vector operations threadsafe
   for (auto _: state) {
@@ -80,8 +81,8 @@ BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid)
   //->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
   ->DisplayAggregatesOnly(true)
-  #ifdef NO_MULTI_THREAD
-  ->Threads(nThreads);
+  #ifdef MULTI_THREAD
+  ->Threads(MULTI_THREAD);
   #else
   ->ThreadPerCpu();
   #endif
@@ -92,8 +93,8 @@ BENCHMARK_REGISTER_F(HybridSetup, intersectVcHybrid_wres)
   //->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
   ->DisplayAggregatesOnly(true)
-  #ifdef NO_MULTI_THREAD
-  ->Threads(nThreads);
+  #ifdef MULTI_THREAD
+  ->Threads(MULTI_THREAD);
   #else
   ->ThreadPerCpu();
   #endif
