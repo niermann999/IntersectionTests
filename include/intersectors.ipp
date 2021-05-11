@@ -137,14 +137,6 @@ inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
   using scalar_v = typename vector_v::vec_type;
   using output_t = typename vector_v::type;
 
-  #ifdef DEBUG
-  //TODO: make constexpr
-  if (planes.points.size() != planes.normals.size()) {
-    std::cerr << "Error: Different size of input collections (plane points and normals)" << std::endl;
-    return;
-  }
-  #endif
-
   //size_t i = 0;
   // Vector iterate
   for (Index_v i(scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(scalar_v::Size)) {
@@ -170,12 +162,12 @@ inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
     if (std::isnan(check_sum) || std::isinf(check_sum)) return;
 
     output_t path = {.x = Vc::fma(coeffs, ray.direction().x, ray.point().x), 
-                                    .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
-                                    .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
+                     .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
+                     .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
-    //results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
-    intersection<scalar_v, output_t> bla = {.path = path, .dist = coeffs};
-    results[0] = bla;
+    results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
+    //intersection<scalar_v, output_t> bla = {.path = path, .dist = coeffs};
+    //results[0] = bla;
     //i += 1;
   }
 }
