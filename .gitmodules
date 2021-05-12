@@ -1,3 +1,6 @@
 [submodule "benchmark"]
 	path = benchmark
 	url = https://github.com/google/benchmark.git
+[submodule "externals/benchmark"]
+	path = externals/benchmark
+	url = https://github.com/google/benchmark.git
