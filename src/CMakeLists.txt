@@ -18,7 +18,7 @@
     ${_target}
     PRIVATE
     Core
-    Boost::unit_test_framework Boost::timer
+    Boost::unit_test_framework Boost::timer Boost::random
     benchmark::benchmark
     Vc
     Eigen3::Eigen
@@ -35,7 +35,7 @@ macro(add_benchmark _name)
 
   target_compile_definitions(
     ${_target}
-    PRIVATE "-DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON" "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF"
+    PRIVATE "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF"
   )
 
   add_compile_options(-pthread)
