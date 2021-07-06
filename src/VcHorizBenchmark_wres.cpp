@@ -28,38 +28,35 @@ using unit_ms = std::chrono::milliseconds;
 //----------------------------------------------------//
 
 //----------------------------------------------------Define Tests
-//
-// Use a horizontal vectorization and data set
-//
-BENCHMARK_DEFINE_F(HorizSetup, intersectVcHoriz)(benchmark::State& state){
 
-  //TODO: Make pointer access threadsafe
+//
+// Use a horizontal vectorization and data set, save the results in a container
+//
+BENCHMARK_DEFINE_F(HorizSetup, intersectVcHoriz_wres)(benchmark::State& state) {
+  using scalar_v = typename vector_v::vec_type;
+  using vector_t = typename vector_v::type;
+
+  aligned::vector<intersection<scalar_v, vector_t> > results;
+  if (state.thread_index == 0) results.reserve(planes_hor.size());
+
+  //TODO: Make vector operations threadsafe
   for (auto _: state) {
-    #ifdef DEBUG 
-    auto t1 = clock::now();
-    #endif
-    for (auto &plane : planes_hor) {
-      // Prevent compiler from optimizing away the loop
-      benchmark::DoNotOptimize(
-        vc_intersect_horiz<vector_v>(ray_hor, plane)
-      );
-    }
+    // Prevent compiler from optimizing away the loop
+    benchmark::DoNotOptimize(results.data());
 
-    #ifdef DEBUG 
-    auto t2 = clock::now();
-    auto duration = duration_cast<unit_ms>(t2 - t1);
-    std::cout << "Eigen 4D (w vec): " << duration.count() << "ms\n";
-    #endif
+    vc_intersect_horiz<vector_v>(ray_hor, planes_hor, results);
+
+    //TODO: threadsafety
+    results.clear();
   }
-  
 }
 
 //----------------------------------------------------Run Tests
 
-BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz)
+BENCHMARK_REGISTER_F(HorizSetup, intersectVcHoriz_wres)
   ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   //->RangeMultiplier(n_surf_mult)->Range(n_surf_min, n_surf_steps*surf_step)
-  ->Name("VcHoriz")
+  ->Name("VcHoriz_wres")
   //->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
   ->DisplayAggregatesOnly(true)

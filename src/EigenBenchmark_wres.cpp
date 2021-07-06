@@ -9,33 +9,39 @@
 namespace vec_intr {
 
 namespace g_bench {
-  
+
+
 //----------------------------------------------------//
-// Vc Vertical                                        //
+// Eigen                                              //
 //----------------------------------------------------//
 
 //----------------------------------------------------Define Tests
-//
-// Use simdArray on unchanged data set
-//
-BENCHMARK_DEFINE_F(VertSetup, intersectVcVert)(benchmark::State& state) {
 
+BENCHMARK_DEFINE_F(VertSetup, intersectEigen4D_wres)(benchmark::State& state) {
+  using scalar_t = typename vector_s::scalar_type;
+  using vector_t = typename vector_s::type;
+
+  aligned::vector<intersection<scalar_t, vector_t> > results;
+  if (state.thread_index == 0) results.reserve(planes.size());
+
+  //TODO: Make vector operations threadsafe
   for (auto _: state) {
-    for (auto &plane : planes) {
-      // Prevent compiler from optimizing away the loop
-      benchmark::DoNotOptimize(
-        vc_intersect_vert<vector_s>(ray, plane)
-      );
-    }
+    // Prevent compiler from optimizing away the loop
+    benchmark::DoNotOptimize(results.data());
+
+    eig_intersect_4D<vector_s>(ray, planes, results);
+
+    //TODO: Check threadsafety
+    results.clear();
   }
 }
 
 //----------------------------------------------------Run Tests
 
-BENCHMARK_REGISTER_F(VertSetup, intersectVcVert)
+BENCHMARK_REGISTER_F(VertSetup, intersectEigen4D_wres)
   ->DenseRange(surf_step, n_surf_steps*surf_step, surf_step)
   //->RangeMultiplier(n_surf_mult)->Range(n_surf_min, n_surf_steps*surf_step)
-  ->Name("VcVert")
+  ->Name("Eigen4D_wres")
   //->Iterations(gbench_test_itrs)
   ->Repetitions(gbench_test_repts)
   ->DisplayAggregatesOnly(true)

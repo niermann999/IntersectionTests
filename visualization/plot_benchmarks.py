@@ -71,9 +71,13 @@ if __name__ == "__main__":
     print("Preparing input data...")
 
     data = pd.DataFrame(json.load(open('./Eigen_bench.json'))["benchmarks"])
+    data = data.append(pd.DataFrame(json.load(open('./Eigen_wres_bench.json'))["benchmarks"]))
     data = data.append(pd.DataFrame(json.load(open('./VcVert_bench.json'))["benchmarks"]))
+    data = data.append(pd.DataFrame(json.load(open('./VcVert_wres_bench.json'))["benchmarks"]))
     data = data.append(pd.DataFrame(json.load(open('./VcHybrid_bench.json'))["benchmarks"]))
+    data = data.append(pd.DataFrame(json.load(open('./VcHybrid_wres_bench.json'))["benchmarks"]))
     data = data.append(pd.DataFrame(json.load(open('./VcHoriz_bench.json'))["benchmarks"]))
+    data = data.append(pd.DataFrame(json.load(open('./VcHoriz_wres_bench.json'))["benchmarks"]))
 
     print(data)
     #prepare data for plots

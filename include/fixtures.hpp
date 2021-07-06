@@ -17,7 +17,9 @@ namespace g_bench {
 constexpr size_t gbench_test_repts = 10;
 // Number of rand. gen. surfaces to intersect
 constexpr size_t surf_step    = 10;
-constexpr size_t n_surf_steps = 10;
+constexpr size_t n_surf_steps = 100;
+constexpr size_t n_surf_mult = 5;
+constexpr size_t n_surf_min = 10;
 #ifdef NO_MULTI_THREAD
 #define MULTI_THREAD 1
 #endif

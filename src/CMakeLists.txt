@@ -21,7 +21,7 @@
     Boost::unit_test_framework Boost::timer Boost::random
     benchmark::benchmark
     Vc
-    Eigen3::Eigen
+    #Eigen3::Eigen
   )
 
   # register as unittest executable
@@ -52,7 +52,7 @@ macro(add_benchmark _name)
     benchmark::benchmark
     benchmark::benchmark_main
     Vc
-    Eigen3::Eigen
+    #Eigen3::Eigen
   )
 
   # register as unittest executable
@@ -65,6 +65,10 @@ endif()
 
 add_unittest(IntersectionTest IntersectionTests.cpp)
 add_benchmark(EigenIntersection EigenBenchmark.cpp)
+add_benchmark(EigenIntersection_wres EigenBenchmark_wres.cpp)
 add_benchmark(VcVertIntersection VcVertBenchmark.cpp)
+add_benchmark(VcVertIntersection_wres VcVertBenchmark_wres.cpp)
 add_benchmark(VcHybridIntersection VcHybridBenchmark.cpp)
+add_benchmark(VcHybridIntersection_wres VcHybridBenchmark_wres.cpp)
 add_benchmark(VcHorizIntersection VcHorizBenchmark.cpp)
+add_benchmark(VcHorizIntersection_wres VcHorizBenchmark_wres.cpp)
