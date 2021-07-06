@@ -39,7 +39,7 @@ BENCHMARK_DEFINE_F(HybridSetup, intersectVcHybrid)(benchmark::State& state) {
 
       // Allow return value to be clobbered in memory
       benchmark::DoNotOptimize(
-        vc_intersect_hybrid<vector_v>(ray_struct, planes_strcts)
+        vc_intersect_horiz<vector_v>(ray_struct, planes_strcts)
       );
       // Prevent compiler from optimizing away the loop
       benchmark::ClobberMemory();

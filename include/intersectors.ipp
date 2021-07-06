@@ -4,6 +4,10 @@
 namespace vec_intr {
 
 
+//-----------------------------------------------------------------------
+// Eigen
+//-----------------------------------------------------------------------
+
 template<typename vector_s>
 inline auto eig_intersect_4D(ray_data<vector_s>& ray,
                              plane_data<vector_s> &plane) {
@@ -41,33 +45,8 @@ inline void eig_intersect_4D(ray_data<vector_s> &ray,
 }
 
 
-
-/*template <typename scalar_t, size_t kDIM>
-auto intersect(Eigen::Matrix<scalar_t, kDIM, 3> rayVector,
-               Eigen::Matrix<scalar_t, kDIM, 3> rayPoint,
-               Eigen::Matrix<scalar_t, kDIM, 3> planeNormal,
-               Eigen::Matrix<scalar_t, kDIM, 3> planePoint) {
-  using Matrix_t = Eigen::Matrix<scalar_t, kDIM, 3>;
-  using Array_t  = Eigen::Array<scalar_t, kDIM, 1>;
-  
-  Matrix_t tmpM_1 (std::move((rayPoint - planePoint).cwiseProduct(planeNormal)));
-  Matrix_t tmpM_2 (std::move(rayVector.cwiseProduct(planeNormal)));
-  Array_t coeffs ((tmpM_1.col(0) + tmpM_1.col(1) + tmpM_1.col(3)).array() 
-                   / (tmpM_2.col(0) + tmpM_2.col(1) + tmpM_2.col(3)).array());
-
-  // Broadcast coefficients onto ray-vector matrix
-  rayVector.col(0).array() *= coeffs;
-  rayVector.col(1).array() *= coeffs;
-  rayVector.col(2).array() *= coeffs;
-  
-  intersection<Array_t, Matrix_t> results = {.dist = coeffs, 
-                                             .path = rayPoint - rayVector};
-  return results;
-}*/
-
-
 //-----------------------------------------------------------------------
-// Vc
+// Vc Vert
 //-----------------------------------------------------------------------
 
 template<typename vector_s>
@@ -123,11 +102,10 @@ inline auto vc_intersect_vert(ray_data<vector_s> &ray,
   return std::move(results);
 }
 
+//-----------------------------------------------------------------------
+// Vc Hybrid
+//-----------------------------------------------------------------------
 
-/*template<typename vector_v>
-inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
-                                plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
-                                std::array<intersection<typename vector_v::vec_type, typename vector_v::type>, 10> &results) {*/
 template<typename vector_v>
 inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
                                 plane_data<aligned::vector<Vector3<typename vector_v::scalar_type> > > &planes,
@@ -137,7 +115,6 @@ inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
   using scalar_v = typename vector_v::vec_type;
   using output_t = typename vector_v::type;
 
-  //size_t i = 0;
   // Vector iterate
   for (Index_v i(scalar_v::IndexesFromZero()); (i < Index_v(planes.points.size())).isFull(); i += Index_v(scalar_v::Size)) {
     scalar_v pps_x = planes.points[i][&Vector3<scalar_t>::x];
@@ -166,41 +143,12 @@ inline void vc_intersect_hybrid(ray_data<vector_v> &ray,
                      .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
     results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
-    //intersection<scalar_v, output_t> bla = {.path = path, .dist = coeffs};
-    //results[0] = bla;
-    //i += 1;
   }
 }
 
-
-template<typename vector_v>
-inline auto vc_intersect_hybrid(ray_data<vector_v> &ray,
-                                plane_data<vector_v> &planes) {
-                                    
-  using scalar_v = typename vector_v::vec_type;
-  using output_t = typename vector_v::type;
-
-  scalar_v denoms (ray.direction().x * planes.normals().x);
-  scalar_v coeffs ((planes.points().x - ray.point().x) * planes.normals().x);
-
-  denoms = Vc::fma(ray.direction().y, planes.normals().y, denoms);
-  coeffs = Vc::fma((planes.points().y - ray.point().y), planes.normals().y, coeffs);
-
-  denoms = Vc::fma(ray.direction().z, planes.normals().z, denoms);
-  coeffs = Vc::fma((planes.points().z - ray.point().z), planes.normals().z, coeffs);
-  coeffs /= denoms;
-
-  auto check_sum = coeffs.sum();
-  if (std::isnan(check_sum) || std::isinf(check_sum)) return intersection<scalar_v, Vector3<scalar_v> >{};
-
-  Vector3<scalar_v> path = {.x = Vc::fma(coeffs, ray.direction().x, ray.point().x), 
-                            .y = Vc::fma(coeffs, ray.direction().y, ray.point().y), 
-                            .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
-
-  intersection<scalar_v, Vector3<scalar_v> > results = {.path = path, .dist = coeffs};
-  return std::move(results);
-}
-
+//-----------------------------------------------------------------------
+// Vc Horiz
+//-----------------------------------------------------------------------
 
 template<typename vector_v>
 inline void vc_intersect_horiz(ray_data<vector_v> &ray,
@@ -232,6 +180,7 @@ inline void vc_intersect_horiz(ray_data<vector_v> &ray,
     results.emplace_back(intersection<scalar_v, output_t>{.path = path, .dist = coeffs});
   }
 }
+
 
 
 template<typename vector_v>

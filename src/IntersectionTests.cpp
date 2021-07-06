@@ -254,7 +254,7 @@ template <unsigned int kPlanes> void intersectVcHybrid(ray_data<vector_v> &ray,
     pl_point_strc.obj = {.x = pps_x, .y = pps_y, .z = pps_z};
     plane_data<vector_v> planes_strcts = {.normals = pl_normal_strc, .points = pl_point_strc};
 
-    auto intersection = vc_intersect_hybrid<vector_v>(ray, planes_strcts);
+    auto intersection = vc_intersect_horiz<vector_v>(ray, planes_strcts);
     check_sum_v += intersection.dist;
     #ifdef DEBUG
       std::cout << intersection.dist << std::endl;
