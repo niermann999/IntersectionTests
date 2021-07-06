@@ -22,7 +22,7 @@ inline auto eig_intersect_4D(ray_data<vector_s>& ray,
 
   intersection<scalar_t, vector_t> results = {.path = vector_t(ray.point() + coeff*ray.direction()),
                                               .dist = coeff};       
-  return std::move(results);
+  return results;
 }
 
 
@@ -99,7 +99,7 @@ inline auto vc_intersect_vert(ray_data<vector_s> &ray,
   auto path = (ray_point + coeff*ray_dir);
 
   intersection<scalar_t, simd_vec_t> results = {.path = path, .dist = coeff};
-  return std::move(results);
+  return results;
 }
 
 //-----------------------------------------------------------------------
@@ -210,7 +210,7 @@ inline auto vc_intersect_horiz(ray_data<vector_v> &ray,
                               .z = Vc::fma(coeffs, ray.direction().z, ray.point().z)};
 
     intersection<scalar_v, output_t> results = {.path = path, .dist = coeffs};
-    return std::move(results);
+    return results;
 }
 
 } // namespace vec_intr

@@ -28,14 +28,21 @@ target_compile_features(Core INTERFACE cxx_std_17)
 # General compile options
 add_compile_options(
        -O3 --std=c++17
-       #-L/usr/lib64/ -l:libVc.a
-       #-Wall -Wextra -Wshadow -fstrict-aliasing -Wno-deprecated-declarations -Wstrict-aliasing
+       -Wall -Wextra -Wshadow -fstrict-aliasing -Wno-deprecated-declarations -Wstrict-aliasing
 )
 
-# Extra vectorization options
+# Set compiler flags manually (use -march=native as orientation)
+if(COMPILE_SSE)
+set(COMPILE_FLAGS -mmmx -msse -msse2 -msse3 -mssse3 -mno-sse4a -msse4.2 -msse4.1 -mno-avx -mno-avx2 -mno-3dnow -mno-avx512f -mno-avx512er -mno-avx512cd -mno-avx512pf -mno-avx512dq -mno-avx512bw -mno-avx512vl -mno-avx512ifma -mno-avx512vbmi -mno-avx5124fmaps -mno-avx5124vnniw -mno-avx512vbmi2 -mno-avx512vnni -mno-avx512bitalg -mno-avx512vpopcntdq)
+elseif(COMPILE_AVX)
+set(COMPILE_FLAGS -mavx -mavx2 -mno-avx512f -mno-avx512er -mno-avx512cd -mno-avx512pf  -mno-avx512dq -mno-avx512bw -mno-avx512vl -mno-avx512ifma -mno-avx512vbmi -mno-avx5124fmaps -mno-avx5124vnniw -mno-avx512vbmi2 -mno-avx512vnni -mno-avx512bitalg -mno-avx512vpopcntdq)
+else()
+set(COMPILE_FLAGS ${Vc_ARCHITECTURE_FLAGS})
+endif()
+
+message(STATUS "Using additional compiler flags: " ${COMPILE_FLAGS})
 add_compile_options(
-       #-march=native -msse -msse2 -msse3 -msse4 -mavx -mavx2
-       #-msse -msse2
+       ${COMPILE_FLAGS}
 )
 
 add_subdirectory(src)

@@ -162,9 +162,9 @@ struct alignas(alignment) MatrixV<Transform4_s> {
 
   type& operator()() {return obj;}
    
-  const size_t n_elemts() {return obj.rows() * obj.cols();}
+  size_t n_elemts() {return obj.rows() * obj.cols();}
   const scalar_type* data() {return obj.data();}
-  const size_t padding() {return (alignment - (n_elemts() * sizeof(scalar_type)) % alignment) % alignment / sizeof(scalar_type);}
+  size_t padding() {return (alignment - (n_elemts() * sizeof(scalar_type)) % alignment) % alignment / sizeof(scalar_type);}
 };
 
 // 3D Structure of vector data
@@ -179,9 +179,9 @@ struct alignas(alignment) MatrixV<Vector3<Scalar_v> > {
   //MatrixV() {}
   type& operator()() {return obj;}
 
-  const size_t n_elemts() {return 3*Scalar_v::Size;}
+  size_t n_elemts() {return 3*Scalar_v::Size;}
   const scalar_type* data() {return reinterpret_cast<const scalar_type*>(&obj.x);}
-  const size_t padding() {return (alignment - (n_elemts() * sizeof(scalar_type)) % alignment) % alignment / sizeof(scalar_type);}
+  size_t padding() {return (alignment - (n_elemts() * sizeof(scalar_type)) % alignment) % alignment / sizeof(scalar_type);}
 };
 
 // Eigen specific types

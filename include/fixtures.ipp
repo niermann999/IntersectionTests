@@ -14,7 +14,7 @@ void VertSetup::SetUp(const ::benchmark::State& state) {
       ray_point.obj = vector_s::type::Random();
 
       planes.reserve(state.range(0));
-      for (size_t i = 0; i < state.range(0); i++) {
+      for (long int i = 0; i < state.range(0); i++) {
         pl_normals = {.obj = vector_s::type::Random()};
         pl_points  = {.obj = vector_s::type::Random()};
 
@@ -42,7 +42,7 @@ void VertSetup::SetUp(const ::benchmark::State& state) {
       // AoS data
       pl_normals_struct.reserve(state.range(0));
       pl_points_struct.reserve(state.range(0));
-      for (size_t i = 0; i < state.range(0); i++) {
+      for (long int i = 0; i < state.range(0); i++) {
         pl_normals_struct.push_back({.x=uni(), .y=uni(), .z=uni()});
         pl_points_struct.push_back( {.x=uni(), .y=uni(), .z=uni()});
       }
@@ -81,7 +81,7 @@ void VertSetup::SetUp(const ::benchmark::State& state) {
                  .point     = std::move(ray_point_hor)};
 
       planes_hor.reserve(6* state.range(0)/Scalar_v::Size + 1);
-      for (size_t s = 0; s < state.range(0)/Scalar_v::Size; s++) {
+      for (long unsigned int s = 0; s < state.range(0)/Scalar_v::Size; s++) {
         pl_normals_hor.obj = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
         pl_points_hor.obj  = {.x= Scalar_v(uni()), .y=Scalar_v(uni()), .z=Scalar_v(uni())};
         planes_hor.push_back({.normals = std::move(pl_normals_hor), 

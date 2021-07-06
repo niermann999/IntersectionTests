@@ -85,7 +85,6 @@ struct data_setup {
     planes_struct = {.normals = pl_normals_struct, .points  = pl_points_struct};
 
     // horizontal data (interleaved)
-    vector_v ray_dir_hor, ray_point_hor;
     ray_dir_hor.obj   = {.x= Scalar_v(0.0), .y=Scalar_v(-1.0), .z=Scalar_v(-1.0)};
     ray_point_hor.obj = {.x= Scalar_v(0.0), .y=Scalar_v(0.0), .z=Scalar_v(10.0)};
 
@@ -354,7 +353,7 @@ template <unsigned int kPlanes> void intersectVcHoriz_res(ray_data<vector_v> &ra
   results.clear();
 
   check_sum = check_sum_v.sum();
-  //BOOST_CHECK(check_sum == 12);
+  BOOST_CHECK(check_sum == 12);
   std::cout << "\tdone" << std::endl;
 }
 
