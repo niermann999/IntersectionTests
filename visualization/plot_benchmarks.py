@@ -58,9 +58,12 @@ if __name__ == "__main__":
     aggr_path  = Path('./aggregate_plots/')
     if bench_path.exists() and bench_path.is_dir():
         delete_old(bench_path)
-        delete_old(aggr_path)
     else:
         os.makedirs('./benchmark_plots/')
+
+    if aggr_path.exists() and aggr_path.is_dir():
+        delete_old(aggr_path)
+    else:
         os.makedirs('./aggregate_plots/')
         
     matplotlib.rcParams.update({'font.size': 8})
@@ -79,7 +82,7 @@ if __name__ == "__main__":
     data = data.append(pd.DataFrame(json.load(open('./VcHoriz_bench.json'))["benchmarks"]))
     data = data.append(pd.DataFrame(json.load(open('./VcHoriz_wres_bench.json'))["benchmarks"]))
 
-    print(data)
+    #print(data)
     #prepare data for plots
 
     # Find max exec time to scale plots
@@ -196,7 +199,7 @@ if __name__ == "__main__":
             data_dict[method + "_stddev"].append(stddev)
             data_dict[method + "_surfs"].append(n_surf)
             
-    print(data_dict)
+    #print(data_dict)
     data_frame = pd.DataFrame.from_dict(data_dict)
     data_frame = data_frame.assign(Eigen4D_surfs=data_frame.Eigen4D_surfs.astype(int)).sort_values(by=['Eigen4D_surfs'], ascending=True, inplace=False)
 
